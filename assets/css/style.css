@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px;
+    background-color: #f1f4f7;
+    color: #3b495e;
+    font-family: Inter;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+h2 { 
+    margin: 20px 0;
+}
+
+.standard-arrow {
+    width: 100%;
+    padding: 10px 35px 10px 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+/* ---------------------------------- */
+/*    Snippflow Custom Select Arrow   */
+/* ---------------------------------- */
+
+.sf-select {
+    appearance: none; /* Disable the default arrow */
+    -webkit-appearance: none; /* For WebKit-based browsers */
+    -moz-appearance: none; /* For Firefox */
+    width: 100%;
+    padding: 10px 35px 10px 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    background-image: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L12 15L18 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 20px;
+    cursor: pointer;
+}
