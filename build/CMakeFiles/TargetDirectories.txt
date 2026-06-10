@@ -1,0 +1,14 @@
+/home/alexy/Documents/dev/pos_windsurf/build/CMakeFiles/sqlite3_lib.dir
+/home/alexy/Documents/dev/pos_windsurf/build/CMakeFiles/pos_server.dir
+/home/alexy/Documents/dev/pos_windsurf/build/CMakeFiles/edit_cache.dir
+/home/alexy/Documents/dev/pos_windsurf/build/CMakeFiles/rebuild_cache.dir
+/home/alexy/Documents/dev/pos_windsurf/build/CMakeFiles/list_install_components.dir
+/home/alexy/Documents/dev/pos_windsurf/build/CMakeFiles/install.dir
+/home/alexy/Documents/dev/pos_windsurf/build/CMakeFiles/install/local.dir
+/home/alexy/Documents/dev/pos_windsurf/build/CMakeFiles/install/strip.dir
+/home/alexy/Documents/dev/pos_windsurf/build/_deps/httplib-build/CMakeFiles/edit_cache.dir
+/home/alexy/Documents/dev/pos_windsurf/build/_deps/httplib-build/CMakeFiles/rebuild_cache.dir
+/home/alexy/Documents/dev/pos_windsurf/build/_deps/httplib-build/CMakeFiles/list_install_components.dir
+/home/alexy/Documents/dev/pos_windsurf/build/_deps/httplib-build/CMakeFiles/install.dir
+/home/alexy/Documents/dev/pos_windsurf/build/_deps/httplib-build/CMakeFiles/install/local.dir
+/home/alexy/Documents/dev/pos_windsurf/build/_deps/httplib-build/CMakeFiles/install/strip.dir
