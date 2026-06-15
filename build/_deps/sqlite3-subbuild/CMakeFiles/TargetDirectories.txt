@@ -1,3 +1,0 @@
-/home/alexy/Documents/dev/pos_windsurf/build/_deps/sqlite3-subbuild/CMakeFiles/sqlite3-populate.dir
-/home/alexy/Documents/dev/pos_windsurf/build/_deps/sqlite3-subbuild/CMakeFiles/edit_cache.dir
-/home/alexy/Documents/dev/pos_windsurf/build/_deps/sqlite3-subbuild/CMakeFiles/rebuild_cache.dir

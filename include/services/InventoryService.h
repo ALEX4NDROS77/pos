@@ -11,8 +11,8 @@ class InventoryService {
 
 		std::vector<Product> get_all_products();
 		std::optional<Product> get_product_by_id(const std::string& id);
-		bool add_product(const std::string& name,double price,int quantity);
-		bool update_product(const std::string& id,const std::string& name, double price,int quantity);
+		bool add_product(const std::string& name,double price,int quantity,const std::string& image);
+		bool update_product(const std::string& id,const std::string& name, double price,int quantity,const std::string& imagen);
 		bool delete_product(const std::string& id);
 		bool update_quantity(const std::string& id,int cantidad);
 

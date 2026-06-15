@@ -11,10 +11,12 @@ class CartController {
 		static void cart_page(const httplib::Request& req,httplib::Response& res);
 		static void add_to_cart(const httplib::Request& req,httplib::Response& res);
 		static void update_cart_item(const httplib::Request& req,httplib::Response& res);
+		static void update_cart_item_get(const httplib::Request& req,httplib::Response& res);
 		static void remove_from_cart(const httplib::Request& req,httplib::Response& res);
 		static void clear_cart(const httplib::Request& req,httplib::Response& res);
 		static void confirm_page(const httplib::Request& req,httplib::Response& res);
 		static void checkout(const httplib::Request& req,httplib::Response& res);
+		static void checkout_get(const httplib::Request& req,httplib::Response& res);
 };
 
 #endif

@@ -10,6 +10,7 @@ namespace Utils {
 	std::string get_timestamp();
 	std::string get_current_time();
 	std::string get_session_id_from_cookie(const httplib::Request& req);
+	std::string base64_encode(const std::string& data);
 }
 
 #endif

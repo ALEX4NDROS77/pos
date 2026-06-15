@@ -2,7 +2,9 @@
 #define	VIEWS_HTMLTEMPLATES_H	1
 
 #include <string>
+#include <vector>
 #include <models/Session.h>
+#include <models/Ticket.h>
 #include <services/SalesService.h>
 
 namespace HtmlTemplates {
@@ -12,6 +14,7 @@ namespace HtmlTemplates {
 	std::string login_page(const std::string& error = "");
 	std::string vendor_login_page(const std::string& error = "");
 	std::string admin_login_page(const std::string& error = "");
+	std::string bar_login_page(const std::string& error = "");
 	std::string homepage(Session* session);
 
 	std::string cart_page(Session* session,const std::string& message = "");
@@ -21,6 +24,9 @@ namespace HtmlTemplates {
 	std::string inventory_manage_page(Session* session,const std::string& message = "");
 
 	std::string sales_report_page(Session* session,const SalesReport& report);
+
+	std::string vendor_manage_page(Session* session,const std::string& message = "");
+	std::string bar_screen(Session* session,const std::vector<Ticket>& tickets);
 }
 
 #endif

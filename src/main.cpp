@@ -1,22 +1,29 @@
-#include <iostream>
 #include <httplib.h>
+#include <iostream>
 
-#include <services/DatabaseService.h>
 #include <controllers/AuthController.h>
+#include <controllers/BarController.h>
 #include <controllers/CartController.h>
 #include <controllers/InventoryController.h>
 #include <controllers/ReportController.h>
+#include <controllers/VendorController.h>
+#include <services/DatabaseService.h>
+#include <utils/Logger.h>
 #include <utils/StaticAssets.h>
 
 int main() {
-	std::cout << "==================================" << std::endl;
-	std::cout << "  POS System - Initializing..." << std::endl;
-	std::cout << "==================================" << std::endl;
+	Logger::get_instance().set_level(LogLevel::DEBUG);
+	Logger::get_instance().set_file("pos.log");
+
+	LOG_INFO("==================================");
+	LOG_INFO("  POS System - Initializing...");
+	LOG_INFO("==================================");
 
 	if(!DatabaseService::get_instance().initialize("pos.db")) {
-		std::cerr << "Failed to initialize database!" << std::endl;
+		LOG_ERROR("Failed to initialize database!");
 		return 1;
 	}
+	LOG_INFO("Database initialized successfully");
 
 	httplib::Server server;
 
@@ -25,16 +32,24 @@ int main() {
 	CartController::register_routes(server);
 	InventoryController::register_routes(server);
 	ReportController::register_routes(server);
+	VendorController::register_routes(server);
+	BarController::register_routes(server);
 
-	std::cout << "==================================" << std::endl;
-	std::cout << "  Server running on:" << std::endl;
-	std::cout << "  http://localhost:8080" << std::endl;
-	std::cout << "  Admin password: admin123" << std::endl;
-	std::cout << "==================================" << std::endl;
+	LOG_INFO("==================================");
+	LOG_INFO("  Server running on:");
+	LOG_INFO("  http://localhost:8080");
+	LOG_INFO("==================================");
+	LOG_INFO("	Credentials:");
+	LOG_INFO("	- Admin: admin123");
+	LOG_INFO("	- Bar: bar123");
+	LOG_INFO("	- Vendors: vendedor1/1234, vendedor2/5678");
+	LOG_INFO("==================================");
 
 	server.listen("0.0.0.0",8080);
 
+	LOG_INFO("Server shutting down...");
 	DatabaseService::get_instance().close();
+	LOG_INFO("Database closed. Goodbye!");
 
 	return 0;
 }

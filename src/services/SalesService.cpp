@@ -1,5 +1,6 @@
 #include <sqlite3.h>
 #include <services/CartService.h>
+#include <services/TicketService.h>
 #include <services/DatabaseService.h>
 #include <services/InventoryService.h>
 #include <services/SalesService.h>
@@ -75,6 +76,33 @@ std::optional<std::string> SalesService::checkout(Session* session,char payment_
 		if(sqlite3_prepare_v2(db.get_connection(),update_stock_sql,-1,&stmt,nullptr) == SQLITE_OK) {
 			sqlite3_bind_int(stmt,1,item.quantity);
 			sqlite3_bind_text(stmt,2,item.product_id.c_str(),-1,SQLITE_STATIC);
+			sqlite3_step(stmt);
+			sqlite3_finalize(stmt);
+		}
+	}
+
+	std::string ticket_id = "TKT-" + Utils::generate_uuid().substr(0,8);
+	std::string ticket_fecha = Utils::get_timestamp();
+
+	const char* ticket_sql = "INSERT INTO TICKETS (ID_TICKET,ORDEN_ID,VENDEDOR_NOMBRE,FECHA_CREACION,ESTADO) VALUES (?,?,?,?,'PENDIENTE');";
+	if(sqlite3_prepare_v2(db.get_connection(),ticket_sql,-1,&stmt,nullptr) == SQLITE_OK) {
+		sqlite3_bind_text(stmt,1,ticket_id.c_str(),-1,SQLITE_STATIC);
+		sqlite3_bind_text(stmt,2,order_id.c_str(),-1,SQLITE_STATIC);
+		sqlite3_bind_text(stmt,3,session->username.c_str(),-1,SQLITE_STATIC);
+		sqlite3_bind_text(stmt,4,ticket_fecha.c_str(),-1,SQLITE_STATIC);
+		sqlite3_step(stmt);
+		sqlite3_finalize(stmt);
+
+		const char* item_sql = "INSERT INTO TICKET_ITEMS (TICKET_ID,PRODUCTO_ID,NOMBRE_PRODUCTO,CANTIDAD) VALUES (?,?,?,?);";
+		for(const auto& item : session->cart) {
+			if(sqlite3_prepare_v2(db.get_connection(),item_sql,-1,&stmt,nullptr) != SQLITE_OK) {
+				continue;
+			}
+
+			sqlite3_bind_text(stmt,1,ticket_id.c_str(),-1,SQLITE_STATIC);
+			sqlite3_bind_text(stmt,2,item.product_id.c_str(),-1,SQLITE_STATIC);
+			sqlite3_bind_text(stmt,3,item.name.c_str(),-1,SQLITE_STATIC);
+			sqlite3_bind_int(stmt,4,item.quantity);
 			sqlite3_step(stmt);
 			sqlite3_finalize(stmt);
 		}

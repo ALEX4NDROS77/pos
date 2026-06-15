@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/home/alexy/Documents/dev/pos_windsurf/build/cmake_install.cmake",
-		"/home/alexy/Documents/dev/pos_windsurf/build/_deps/httplib-build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

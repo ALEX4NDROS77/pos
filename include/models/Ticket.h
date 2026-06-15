@@ -3,19 +3,19 @@
 
 #include <string>
 #include <vector>
-#include <CartItem.h>
+#include <models/CartItem.h>
 
 struct TicketItem {
-	std::string productoId;
-	std::string nombre;
-	int cantidad;
-}:
+	std::string product_id;
+	std::string name;
+	int quantity;
+};
 
 struct Ticket {
 	std::string id;
-	std::string visitorId;
-	std::string vendorNombre;
-	std::string fechaCreacion;
+	std::string visitor_id;
+	std::string vendor_name;
+	std::string fecha_creacion;
 	std::string estado;	// "PENDIENTE, "EN_PROCESO", "COMPLETADO"
 	std::vector<TicketItem> items;
 };

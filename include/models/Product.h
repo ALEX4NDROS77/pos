@@ -8,6 +8,7 @@ struct Product {
 	std::string name;
 	double sale_price;
 	int quantity;
+	std::string imagen;
 };
 
 #endif

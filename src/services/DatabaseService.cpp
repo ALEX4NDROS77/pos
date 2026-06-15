@@ -27,7 +27,9 @@ bool DatabaseService::initialize(const std::string& db_path) {
 		return false;
 	}
 
-	insert_sample_data();
+	if(!insert_sample_data()) {
+		return false;
+	}
 
 	std::cout << "Database initialized successfully." <<std::endl;
 	return true;
@@ -54,7 +56,8 @@ bool DatabaseService::create_tables() {
 			ID_PRODUCTO VARCHAR(36) PRIMARY KEY,
 			NOMBRE VARCHAR(100) NOT NULL,
 			PRECIO_VENTA REAL NOT NULL,
-			CANTIDAD INTEGER NOT NULL DEFAULT 0
+			CANTIDAD INTEGER NOT NULL DEFAULT 0,
+			IMAGEN VARCHAR(255) DEFAULT ''
 		);
 
 		CREATE TABLE IF NOT EXISTS ORDENES (
@@ -130,19 +133,19 @@ bool DatabaseService::insert_sample_data() {
 	}
 
 	const char* sql = R"(
-		INSERT INTO PRODUCTOS (ID_PRODUCTO,NOMBRE,PRECIO_VENTA) VALUES
-		('PROD-001','Manzana',0.50),
-		('PROD-002','Banana',0.30),
-		('PROD-003','Naranja',0.60),
-		('PROD-004','Leche 1L',1.20),
-		('PROD-005','Pan',1.50),
-		('PROD-006','Huevos (12)',2.50),
-		('PROD-007','Queso',3.00),
-		('PROD-008','Mantequilla',2.00)
+		INSERT INTO PRODUCTOS (ID_PRODUCTO,NOMBRE,PRECIO_VENTA,IMAGEN) VALUES
+		('PROD-001','Manzana',5,''),
+		('PROD-002','Banana',3,''),
+		('PROD-003','Naranja',6,''),
+		('PROD-004','Leche 1L',2,''),
+		('PROD-005','Pan',5,''),
+		('PROD-006','Huevos (12)',5,''),
+		('PROD-007','Queso',3,''),
+		('PROD-008','Mantequilla',2,'');
 
 		INSERT INTO VENDEDORES (ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO) VALUES
-		('VEND-001','vendedor1','pass123',1),
-		('VEND-002','vendedor2','pass123',1);
+		('VEND-001','vendedor1','1234',1),
+		('VEND-002','vendedor2','5678',1);
 	)";
 
 	char* err_msg = nullptr;

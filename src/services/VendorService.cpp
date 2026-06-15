@@ -12,8 +12,8 @@ std::optional<Vendor> VendorService::authenticate(const std::string& nombre,cons
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = "SELECT ID_VENDEDOR,NOMBER,PASSWORD,ACTIVO FROM VENDEDORES WHERE NOMBRE = ? AND PASSWORD = ? AND ACTIVO = 1;";
-	sqlite3_stmt;
+	const char* sql = "SELECT ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO FROM VENDEDORES WHERE NOMBRE = ? AND PASSWORD = ? AND ACTIVO = 1;";
+	sqlite3_stmt* stmt;
 
 	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) != SQLITE_OK) {
 		return std::nullopt;
@@ -23,7 +23,7 @@ std::optional<Vendor> VendorService::authenticate(const std::string& nombre,cons
 	sqlite3_bind_text(stmt,2,password.c_str(),-1,SQLITE_STATIC);
 
 	if(sqlite3_step(stmt) != SQLITE_ROW) {
-		sqlite_finalize(stmt);
+		sqlite3_finalize(stmt);
 		return std::nullopt;
 	}
 
@@ -72,6 +72,8 @@ std::optional<Vendor> VendorService::get_vendor_by_id(const std::string& id) {
 		return std::nullopt;
 	}
 
+	sqlite3_bind_text(stmt,1,id.c_str(),-1,SQLITE_STATIC);
+
 	if(sqlite3_step(stmt) != SQLITE_ROW) {
 		sqlite3_finalize(stmt);
 		return std::nullopt;
@@ -91,7 +93,7 @@ bool VendorService::add_vendor(const std::string& nombre,const std::string& pass
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	std::string id = "VEND-" + Utils::generate_uuid.substr(0,8);
+	std::string id = "VEND-" + Utils::generate_uuid().substr(0,8);
 
 	const char* sql = "INSERT INTO VENDEDORES (ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO) VALUES (?,?,?,1);";
 	sqlite3_stmt* stmt;
@@ -109,11 +111,11 @@ bool VendorService::add_vendor(const std::string& nombre,const std::string& pass
 	return success;
 }
 
-vool VendorService::update_vendor(const std::string& id,const std::string& nombre,const std::string& password,bool activo) {
+bool VendorService::update_vendor(const std::string& id,const std::string& nombre,const std::string& password,bool activo) {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = "UPDATE VENDEDORES SET NOMBRE = ?,PASSWORD = ?, ACTIVO = ?, WHERE ID_VENDEDOR = ?;";
+	const char* sql = "UPDATE VENDEDORES SET NOMBRE = ?, PASSWORD = ?, ACTIVO = ? WHERE ID_VENDEDOR = ?;";
 	sqlite3_stmt* stmt;
 
 	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) != SQLITE_OK) {
@@ -121,7 +123,7 @@ vool VendorService::update_vendor(const std::string& id,const std::string& nombr
 	}
 
 	sqlite3_bind_text(stmt,1,nombre.c_str(),-1,SQLITE_STATIC);
-	sqlite3_bind_text(stmt,1,password.c_str(),-1,SQLITE_STATIC);
+	sqlite3_bind_text(stmt,2,password.c_str(),-1,SQLITE_STATIC);
 	sqlite3_bind_int(stmt,3,activo ? 1 : 0);
 	sqlite3_bind_text(stmt,4,id.c_str(),-1,SQLITE_STATIC);
 
@@ -131,7 +133,7 @@ vool VendorService::update_vendor(const std::string& id,const std::string& nombr
 	return success;
 }
 
-bool delete_vendor(const std::string& id) {
+bool VendorService::delete_vendor(const std::string& id) {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
@@ -150,7 +152,7 @@ bool delete_vendor(const std::string& id) {
 	return success;
 }
 
-bool set_vendor_active(const std::string& id,bool activo) {
+bool VendorService::set_vendor_active(const std::string& id,bool activo) {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 

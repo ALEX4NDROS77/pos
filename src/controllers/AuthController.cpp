@@ -1,5 +1,6 @@
 #include <controllers/AuthController.h>
 #include <services/SessionService.h>
+#include <services/VendorService.h>
 #include <views/HtmlTemplates.h>
 #include <utils/Utils.h>
 
@@ -9,6 +10,8 @@ void AuthController::register_routes(httplib::Server& server) {
 	server.Post("/login/vendor",vendor_login_post);
 	server.Get("/login/admin",admin_login_page);
 	server.Post("/login/admin",admin_login_post);
+	server.Get("/login/bar",bar_login_page);
+	server.Post("/login/bar",bar_login_post);
 	server.Get("/logout",logout);
 	server.Get("/home",homepage);
 }
@@ -28,12 +31,20 @@ void AuthController::vendor_login_page(const httplib::Request& req,httplib::Resp
 
 void AuthController::vendor_login_post(const httplib::Request& req,httplib::Response& res) {
 	std::string username = req.get_param_value("username");
-	if(username.empty()) {
-		res.set_content(HtmlTemplates::vendor_login_page(),"text/html");
+	std::string password = req.get_param_value("password");
+
+	if(username.empty() || password.empty()) {
+		res.set_content(HtmlTemplates::vendor_login_page("Ingrese usuario y contraseña"),"text/html");
 		return;
 	}
 
-	std::string session_id = SessionService::get_instance().create_session(username,"vendor");
+	auto vendor = VendorService::get_instance().authenticate(username,password);
+	if(!vendor) {
+		res.set_content(HtmlTemplates::vendor_login_page("Credenciales incorrectas o usuario inactivo"),"text/html");
+		return;
+	}
+
+	std::string session_id = SessionService::get_instance().create_session(vendor->nombre,"vendor");
 	res.set_header("Set-Cookie","session_id=" + session_id + "; Path=/; HttpOnly");
 	res.set_redirect("/home");
 }
@@ -71,5 +82,27 @@ void AuthController::homepage(const httplib::Request& req,httplib::Response& res
 		res.set_redirect("/");
 		return;
 	}
+	if(session->role == "bar") {
+		res.set_redirect("/bar");
+		return;
+	}
 	res.set_content(HtmlTemplates::homepage(session),"text/html");
 }
+
+void AuthController::bar_login_page(const httplib::Request& req,httplib::Response& res) {
+	res.set_content(HtmlTemplates::bar_login_page(),"text/html");
+}
+
+void AuthController::bar_login_post(const httplib::Request& req,httplib::Response& res) {
+	std::string password = req.get_param_value("password");
+
+	if(!SessionService::get_instance().validate_bar_password(password)) {
+		res.set_content(HtmlTemplates::bar_login_page("Contraseña incorrecta!"),"text/html");
+		return;
+	}
+
+	std::string session_id = SessionService::get_instance().create_session("Bar","bar");
+	res.set_header("Set-Cookie","session_id=" + session_id + "; Path=/; HttpOnly");
+	res.set_redirect("/bar");
+}
+

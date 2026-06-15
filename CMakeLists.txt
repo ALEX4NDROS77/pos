@@ -34,12 +34,17 @@ set(SOURCES
 	src/services/CartService.cpp
 	src/services/SalesService.cpp
 	src/services/SessionService.cpp
+	src/services/VendorService.cpp
+	src/services/TicketService.cpp
 	src/controllers/AuthController.cpp
 	src/controllers/CartController.cpp
 	src/controllers/InventoryController.cpp
 	src/controllers/ReportController.cpp
+	src/controllers/VendorController.cpp
+	src/controllers/BarController.cpp
 	src/views/HtmlTemplates.cpp
 	src/utils/Utils.cpp
+	src/utils/Logger.cpp
 )
 
 add_executable(pos_server ${SOURCES})
