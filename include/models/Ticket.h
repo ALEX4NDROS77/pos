@@ -16,8 +16,9 @@ struct Ticket {
 	std::string visitor_id;
 	std::string vendor_name;
 	std::string fecha_creacion;
-	std::string estado;	// "PENDIENTE, "EN_PROCESO", "COMPLETADO"
+	std::string estado;	// "PENDIENTE", "EN_PROCESO", "COMPLETADO"
 	std::vector<TicketItem> items;
+	char metodo_pago;	// 'E' = Efectivo, 'T' = Tarjeta, 'C' = Cortesia
 };
 
 #endif

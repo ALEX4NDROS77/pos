@@ -1,6 +1,7 @@
 #include <controllers/VendorController.h>
 #include <services/SessionService.h>
 #include <services/VendorService.h>
+#include <utils/Logger.h>
 #include <views/HtmlTemplates.h>
 
 void VendorController::register_routes(httplib::Server& server) {
@@ -31,10 +32,13 @@ void VendorController::add_vendor(const httplib::Request& req,httplib::Response&
 	std::string nombre = req.get_param_value("nombre");
 	std::string password = req.get_param_value("password");
 
+	LOG_INFO("VendorController::add_vendor - Vendor add: name='" + nombre + "'");
+
 	std::string message;
 	if(VendorService::get_instance().add_vendor(nombre,password)) {
 		message = "Vendedor agregado exitosamente!";
 	} else {
+		LOG_WARNING("VendorController::add_vendor - Vendor add failed: name='" + nombre + "'");
 		message = "Error al agregar vendedor.";
 	}
 
@@ -72,10 +76,13 @@ void VendorController::delete_vendor(const httplib::Request& req,httplib::Respon
 
 	std::string id = req.matches[1];
 
+	LOG_INFO("VendorController::delete_vendor - Vendor delete: id='" + id + "'");
+
 	std::string message;
 	if(VendorService::get_instance().delete_vendor(id)) {
 		message = "Vendedor eliminado!";
 	} else {
+		LOG_WARNING("VendorController::delete_vendor - Vendor delete failed: id='" + id + "'");
 		message = "Error al eliminar vendedor.";
 	}
 
@@ -94,8 +101,10 @@ void VendorController::toggle_vendor(const httplib::Request& req,httplib::Respon
 
 	std::string message;
 	if(vendor && VendorService::get_instance().set_vendor_active(id,!vendor->activo)) {
+		LOG_INFO("VendorController::toggle_vendor - Vendor toggle: id='" + id + "', active=" + std::to_string(!vendor->activo));
 		message = vendor->activo ? "Vendedor desactivado!" : "Vendedor activado!";
 	} else {
+		LOG_WARNING("VendorController::toggle_vendor - Vendor toggle failed: id='" + id + "'");
 		message = "Error al cambiar estado.";
 	}
 

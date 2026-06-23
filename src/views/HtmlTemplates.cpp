@@ -363,22 +363,22 @@ namespace HtmlTemplates {
 			<style>
 				.product-grid {
 					display: grid;
-					grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+					grid-template-columns: repeat(3, 1fr);
 					gap: 15px;
 					margin-bottom: 30px;
 				}
 				.product-card {
 					background: linear-gradient(135deg, #222 0%, #111 100%);
 					border: 2px solid #333;
-					border-radius: 12px;
-					padding: 10px;
+					border-radius: 8px;
+					padding: 8px;
 					text-align: center;
 					cursor: pointer;
 					transition: all 0.2s;
 				}
 				.product-card:hover, .product-card.selected {
 					border-color: var(--primary-red);
-					box-shadow: 0 0 15px rgba(212,20,20,0.4);
+					box-shadow: 0 0 10px rgba(212,20,20,0.4);
 					transform: scale(1.02);
 				}
 				.product-card.out-of-stock {
@@ -386,63 +386,94 @@ namespace HtmlTemplates {
 					pointer-events: none;
 				}
 				.product-img {
-					width: 80px;
-					height: 80px;
+					width: 65px;
+					height: 65px;
 					background: linear-gradient(135deg, #444 0%, #222 100%);
-					border-radius: 8px;
-					margin: 0 auto 10px;
+					border-radius: 6px;
+					margin: 0 auto 3px;
 					display: flex;
 					align-items: center;
 					justify-content: center;
-					font-size: 2rem;
+					font-size: 1.5rem;
 					color: #666;
 					object-fit: cover;
 				}
 				.product-name {
 					font-weight: bold;
 					color: white;
-					font-size: 0.9rem;
-					margin-bottom: 5px;
+					font-size: 0.7rem;
+					margin-bottom: 1px;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+					line-height: 1.2;
 				}
 				.product-price {
 					color: var(--accent-orange);
 					font-weight: bold;
+					font-size: 0.75rem;
+					line-height: 1.2;
 				}
 				.product-stock {
 					color: #888;
-					font-size: 0.8rem;
+					font-size: 0.6rem;
+					line-height: 1.2;
 				}
 				.qty-controls {
 					display: flex;
 					align-items: center;
 					justify-content: center;
-					gap: 15px;
-					margin: 20px 0;
+					gap: 8px;
+					margin: 8px 0;
 				}
 				.qty-btn {
-					width: 60px;
-					height: 60px;
-					font-size: 2rem;
+					width: 40px;
+					height: 40px;
+					font-size: 1.3rem;
 					background: var(--primary-red);
 					border: none;
-					border-radius: 10px;
+					border-radius: 6px;
 					color: white;
 					cursor: pointer;
 				}
 				.qty-display {
-					font-size: 2.5rem;
+					font-size: 1.5rem;
 					font-weight: bold;
 					color: white;
-					min-width: 80px;
+					min-width: 40px;
 					text-align: center;
 				}
 				.selected-product {
 					background: rgba(212,20,20,0.2);
 					border: 2px solid var(--primary-red);
-					border-radius: 12px;
-					padding: 20px;
-					margin-bottom: 20px;
+					border-radius: 8px;
+					padding: 10px;
+					margin-bottom: 10px;
 					text-align: center;
+				}
+				.selected-product h3 {
+					font-size: 1rem;
+					margin 0 0 5px 0;
+				}
+				.cart-table-wrapper {
+					overflow-x: auto;
+					-webkit-overflow-scrolling:touch;
+				}
+				.cart-table {
+					width: 100%;
+					font-size: 0.8rem;
+					min-width: 400px;
+				}
+				.cart-table th, .cart-table td {
+					padding: 6px 4px;
+					white-space: nowrap;
+				}
+				.cart-table .btn { padding: 4px 8px; font-size: 0.7rem; }
+				@media (min-width: 600px) {
+					.product-grid { grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 12px; }
+					.product-card { padding: 10px; }
+					.product-img { width: 70px; hehight: 70px; }
+					.product-name { font-size: 0.85rem; }
 				}
 			</style>
 		)";
@@ -500,7 +531,7 @@ namespace HtmlTemplates {
 				<form method="POST" action="/cart/add" id="add_form">
 					<input type="hidden" name="product_id" id="selected_product_id">
 					<input type="hidden" name="quantity" id="selected_qty" value="1">
-					<button type="submit" class="btn btn-success" style="font-size: 1.3rem;">Agregar al Carrito</button>
+					<button type="submit" class="btn btn-success" style="padding: 6px 16px; font-size: 0.85rem;">Agregar</button>
 				</form>
 			</div>
 		)";
@@ -538,13 +569,14 @@ namespace HtmlTemplates {
 			</script>
 		)";
 
-		html += "<h3 style='margin-top: 30px;'>Carrito Actual</h3>";
+		html += "<h3 style='margin-top: 15px;'>Carrito Actual</h3>";
 
 		auto& cart = session->cart;
 		if(cart.empty()) {
 			html += "<div class='alert alert-info'>El carrito esta vacio.</div>";
 		} else {
-			html += "<table><tr><th>Producto</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th><th>Acciones</th></tr>";
+			html += "<div class='cart-table-wrapper'>";
+			html += "<table class='cart-table'><tr><th>Producto</th><th>Precio</th><th>Cant.</th><th>Subtotal</th><th></th></tr>";
 
 			double total = 0;
 			for(const auto& item : cart) {
@@ -555,10 +587,10 @@ namespace HtmlTemplates {
 				html += "<td>$" + format_price(item.unit_price) + "</td>";
 				html += "<td>" + std::to_string(item.quantity) + "</td>";
 				html += "<td>$" + format_price(subtotal) + "</td>";
-				html += "<td><a href='/cart/remove/" + item.product_id + "' class='btn btn-danger'>Quitar</a></td></tr>";
+				html += "<td><a href='/cart/remove/" + item.product_id + "' class='btn btn-danger'>X</a></td></tr>";
 			}
 
-			html += "</table>";
+			html += "</table></div>";
 			html += "<div class='cart-summary'><span class='total'>Total: $" + format_price(total) + "</span>";
 			html += " <a href='/cart/clear' class='btn btn-danger'>Vaciar</a>";
 			html += " <a href='/cart/confirm' class='btn btn-success'>Confirmar</a></div>";
@@ -570,7 +602,7 @@ namespace HtmlTemplates {
 
 	std::string cart_confirm_page(Session* session,const std::string& message) {
 		std::string html = "<div class='container'>";
-		html += "<div class='header'><h1>Confirmar Ordern</h1>";
+		html += "<div class='header'><h1>Confirmar Orden</h1>";
 		html += "<a href='/home' class='btn btn-primary'>Volver al Menu</a></div>";
 		
 		if(!message.empty() && message.find("ORD") != std::string::npos) {
@@ -752,7 +784,7 @@ namespace HtmlTemplates {
 			html += "<td class='col-name'><input type='text' name='name' value='" + p.name + "'></td>";
 			html += "<td class='col-price'><input type='number' name='price' value='" + format_price(p.sale_price) + "' step='1.00' min='0'></td>";
 			html += "<td class='col-stock'><input type='number' name='quantity' value='" + std::to_string(p.quantity) + "' min='0'></td>";
-			html += "<td class='col-img'><input type='file' accept='image/*' style='width: 100px; onchange=\"compress_image(this, 'img-" + p.id + "')\"></td>";
+			html += "<td class='col-img'><input type='file' accept='image/*' style='width: 100px;' onchange=\"compress_image(this, 'img-" + p.id + "')\"></td>";
 			html += "<td class='col-actions'>";
 			html += "<button type='submit' class='btn btn-primary'>Guardar</button>";
 			html += "</form>";
@@ -836,7 +868,7 @@ namespace HtmlTemplates {
 		}
 
 		html += R"(
-					<button type="submit" class="btn btn-warning" style="width: 100%;">Entrar</button>
+					<button type="submit" class="btn btn-success" style="width: 100%;">Entrar</button>
 				</form>
 				<br>
 				<a href="/" class="btn btn-primary">Volver</a>
@@ -953,11 +985,19 @@ namespace HtmlTemplates {
 				std::string status_badge_class = (ticket.estado == "PENDIENTE") ? "status-pendiente" : "status-en_proceso";
 
 				html += "<div class='ticket-card " + status_class + "'>";
+				std::string metodo_str;
+				switch(ticket.metodo_pago) {
+					case 'E': metodo_str = "Efectivo"; break;
+					case 'T': metodo_str = "Tarjeta"; break;
+					case 'C': metodo_str = "Cortesia"; break;
+					default: metodo_str = "Desconocido"; break;
+				}
+
 				html += "<div class='ticket-header'>";
-				html += "<span class='ticket-id'>" + ticket.id + "</span>";
+				html += "<span class='ticket-id'>" + metodo_str + "</span>";
 				html += "<span class='status-badge " + status_badge_class + "'>" + ticket.estado + "</span>";
 				html += "</div>";
-				html += "<div class='ticket-vendor'>Vendedor: <strong>" + ticket.vendor_name + "</strong></div>";
+				html += "<div class='ticket-vendor'><strong>" + ticket.vendor_name + "</strong></div>";
 				html += "<div style='color: #666; font-size: 12px;'>" + ticket.fecha_creacion + "</div>";
 
 				html += "<div class='ticket-items'>";
@@ -987,7 +1027,7 @@ namespace HtmlTemplates {
 
 		html += R"(
 			<script>
-				setTimeout(function() { location.reload(); }, 30000);
+				setTimeout(function() { location.reload(); }, 5000);
 			</script>
 		)";
 

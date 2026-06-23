@@ -1,5 +1,6 @@
 #include <services/TicketService.h>
 #include <services/DatabaseService.h>
+#include <utils/Logger.h>
 #include <utils/Utils.h>
 #include <sqlite3.h>
 
@@ -69,7 +70,13 @@ std::vector<Ticket> TicketService::get_pending_tickets() {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = "SELECT ID_TICKET,ORDEN_ID,VENDEDOR_NOMBRE,FECHA_CREACION,ESTADO FROM TICKETS WHERE ESTADO IN ('PENDIENTE','EN_PROCESO') ORDER BY FECHA_CREACION ASC;";
+	const char* sql = R"(
+		SELECT T.ID_TICKET,T.ORDEN_ID,T.VENDEDOR_NOMBRE,T.FECHA_CREACION,T.ESTADO,O.METODO_PAGO
+		FROM TICKETS T
+		JOIN ORDENES O ON T.ORDEN_ID = O.ID_VENTA
+		WHERE T.ESTADO IN ('PENDIENTE','EN_PROCESO')
+		ORDER BY T.FECHA_CREACION ASC;
+	)";
 	sqlite3_stmt* stmt;
 
 	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) != SQLITE_OK) {
@@ -83,6 +90,8 @@ std::vector<Ticket> TicketService::get_pending_tickets() {
 		t.vendor_name = reinterpret_cast<const char*>(sqlite3_column_text(stmt,2));
 		t.fecha_creacion = reinterpret_cast<const char*>(sqlite3_column_text(stmt,3));
 		t.estado = reinterpret_cast<const char*>(sqlite3_column_text(stmt,4));
+		const char* metodo = reinterpret_cast<const char*>(sqlite3_column_text(stmt,5));
+		t.metodo_pago = metodo ? metodo[0] : 'E';
 		tickets.push_back(t);
 	}
 	sqlite3_finalize(stmt);
@@ -156,6 +165,7 @@ bool TicketService::update_ticket_status(const std::string& id,const std::string
 	sqlite3_stmt* stmt;
 
 	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) != SQLITE_OK) {
+		LOG_ERROR("TicketService::update_ticket_status - failed to prepare SQL");
 		return false;
 	}
 
@@ -164,6 +174,12 @@ bool TicketService::update_ticket_status(const std::string& id,const std::string
 
 	bool success = sqlite3_step(stmt) == SQLITE_DONE;
 	sqlite3_finalize(stmt);
+
+	if(success) {
+		LOG_INFO("TicketSErvice::update_ticket_status - ticket='" + id + "' -> '" + estado + "'");
+	} else {
+		LOG_ERROR("TicketSErvice::update_ticket_status - failed to update ticket='" + id + "'");
+	}
 
 	return success;
 }

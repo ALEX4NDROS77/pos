@@ -42,9 +42,9 @@ class Logger {
 };
 
 #define LOG_DEBUG(msg) Logger::get_instance().debug(msg)
-#define LOG_INFO(msg) Logger::get_instance().debug(msg)
-#define LOG_WARNING(msg) Logger::get_instance().debug(msg)
-#define LOG_ERROR(msg) Logger::get_instance().debug(msg)
+#define LOG_INFO(msg) Logger::get_instance().info(msg)
+#define LOG_WARNING(msg) Logger::get_instance().warning(msg)
+#define LOG_ERROR(msg) Logger::get_instance().error(msg)
 
 #endif
 

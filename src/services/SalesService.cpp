@@ -1,9 +1,10 @@
 #include <sqlite3.h>
 #include <services/CartService.h>
-#include <services/TicketService.h>
 #include <services/DatabaseService.h>
 #include <services/InventoryService.h>
 #include <services/SalesService.h>
+#include <services/TicketService.h>
+#include <utils/Logger.h>
 #include <utils/Utils.h>
 #include <views/HtmlTemplates.h>
 
@@ -14,13 +15,17 @@ SalesService& SalesService::get_instance() {
 
 std::optional<std::string> SalesService::checkout(Session* session,char payment_method) {
 	if(!session || session->cart.empty()) {
+		LOG_WARNING("SalesService::checkout - empty session or cart");
 		return std::nullopt;
 	}
+
+	LOG_DEBUG("SalesService::checkout - validating stock for " + std::to_string(session->cart.size()) + " items");
 
 	// Re-validates availabitily of the producto to avoid run-conditions
 	for(const auto& item : session->cart) {
 		auto current_product = InventoryService::get_instance().get_product_by_id(item.product_id);
 		if(current_product->quantity < item.quantity) {
+			LOG_WARNING("SalesService::checkout - insuficient stock for '" + item.name + "'");
 			return "Error: El producto '" + item.name + "' ya no tiene stock suficiente.";
 		}
 	}
@@ -36,6 +41,7 @@ std::optional<std::string> SalesService::checkout(Session* session,char payment_
 	sqlite3_stmt* stmt;
 
 	if(sqlite3_prepare_v2(db.get_connection(),order_sql,-1,&stmt,nullptr) != SQLITE_OK) {
+		LOG_ERROR("SalesService::checkout - failed to prepare order SQL");
 		return std::nullopt;
 	}
 
@@ -49,10 +55,13 @@ std::optional<std::string> SalesService::checkout(Session* session,char payment_
 	sqlite3_bind_text(stmt,5,username.c_str(),-1,SQLITE_STATIC);
 
 	if(sqlite3_step(stmt) != SQLITE_DONE) {
+		LOG_ERROR("SalesService::checkout - failed to insert order");
 		sqlite3_finalize(stmt);
 		return std::nullopt;
 	}
 	sqlite3_finalize(stmt);
+
+	LOG_DEBUG("SalesService::checkout - order created: " + order_id);
 
 	const char* sale_sql = "INSERT INTO VENTAS (ID_VENTA, ORDEN_ID, PRODUCTO_ID, CANTIDAD_VENTA, PRECIO_UNITARIO) VALUES (?, ?, ?, ?, ?);";
 	const char* update_stock_sql = "UPDATE PRODUCTOS SET CANTIDAD = CANTIDAD - ? WHERE ID_PRODUCTO = ?;";
@@ -110,6 +119,7 @@ std::optional<std::string> SalesService::checkout(Session* session,char payment_
 
 	session->cart.clear();
 
+	LOG_INFO("SalesService::checkout - completed order=" + order_id + ", ticket=" + ticket_id + ", total=$" + std::to_string(total));
 	return order_id;
 }
 

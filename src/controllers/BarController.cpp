@@ -2,6 +2,7 @@
 #include <services/SessionService.h>
 #include <services/TicketService.h>
 #include <views/HtmlTemplates.h>
+#include <utils/Logger.h>
 #include <sstream>
 
 void BarController::register_routes(httplib::Server& server) {
@@ -31,6 +32,7 @@ void BarController::update_ticket_status(const httplib::Request& req,httplib::Re
 	std::string ticket_id = req.get_param_value("ticket_id");
 	std::string estado = req.get_param_value("estado");
 
+	LOG_INFO("BarController::update_ticket_status - Ticket status update: ticket='" + ticket_id + "', status='" + estado + "'");
 	TicketService::get_instance().update_ticket_status(ticket_id,estado);
 
 	res.set_redirect("/bar");

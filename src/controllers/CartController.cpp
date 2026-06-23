@@ -1,4 +1,5 @@
 #include <controllers/CartController.h>
+#include <utils/Logger.h>
 #include <services/SessionService.h>
 #include <services/CartService.h>
 #include <services/SalesService.h>
@@ -54,10 +55,13 @@ void CartController::add_to_cart(const httplib::Request& req,httplib::Response& 
 	std::string product_id = req.get_param_value("product_id");
 	int quantity = std::stoi(req.get_param_value("quantity"));
 
+	LOG_INFO("CartController::add_to_cart - Cart add: user='" + session->username + "', product='" + product_id + "', qty=" + std::to_string(quantity));
+
 	std::string message;
 	if(CartService::get_instance().add_to_cart(session,product_id,quantity)) {
 		message = "Producto agregado al carrito!";
 	} else {
+		LOG_WARNING("CartController::add_to_cart - Cart add failed: product='" + product_id + "'");
 		message = "Error al agregar producto.";
 	}
 
@@ -100,6 +104,7 @@ void CartController::remove_from_cart(const httplib::Request& req,httplib::Respo
 	}
 	
 	std::string product_id = req.matches[1];
+	LOG_INFO("CartController::remove_from_cart - Cart remove: user='" + session->username + "', product='" + product_id + "'");
 	CartService::get_instance().remove_from_cart(session,product_id);
 	res.set_content(HtmlTemplates::cart_page(session,"Producto eliminado!"),"text/html");
 }
@@ -111,6 +116,7 @@ void CartController::clear_cart(const httplib::Request& req,httplib::Response& r
 		return;
 	}
 	
+	LOG_INFO("CartController::clear_cart - user='" + session->username + "'");
 	CartService::get_instance().clear_cart(session);
 	res.set_content(HtmlTemplates::cart_page(session,"Carrito vaciado!"),"text/html");
 }
@@ -133,6 +139,8 @@ void CartController::checkout(const httplib::Request& req,httplib::Response& res
 	
 	std::string payment_method_str = req.get_param_value("payment_method");
 	char payment_method = payment_method_str.empty() ? 'E' : payment_method_str[0];
+
+	LOG_INFO("CartController::checkout - Checkout: user='" + session->username + "', method=" + std::string(1,payment_method) + ", items=" + std::to_string(session->cart.size()));
 
 	auto order_id = SalesService::get_instance().checkout(session,payment_method);
 
