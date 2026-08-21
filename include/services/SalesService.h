@@ -26,7 +26,9 @@ class SalesService {
 
 		std::optional<std::string> checkout(Session* session,char payment_method);
 		SalesReport get_sales_report();
+		SalesReport get_sales_report_by_vendor(const std::string& vendor);
 		std::vector<Sale> get_sales_by_order_id(const std::string& order_id);
+		std::vector<std::string> get_all_vendors_with_sales();
 
 	private:
 		SalesService() = default;

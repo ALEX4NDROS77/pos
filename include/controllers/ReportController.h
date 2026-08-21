@@ -9,6 +9,7 @@ class ReportController {
 
 	private:
 		static void sales_report(const httplib::Request& req,httplib::Response& res);
+		static void sales_report_by_vendor(const httplib::Request& req,httplib::Response& res);
 };
 
 #endif

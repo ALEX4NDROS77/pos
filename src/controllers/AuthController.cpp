@@ -1,6 +1,7 @@
 #include <controllers/AuthController.h>
 #include <services/SessionService.h>
 #include <services/VendorService.h>
+#include <services/TicketService.h>
 #include <views/HtmlTemplates.h>
 #include <utils/Utils.h>
 #include <utils/Logger.h>
@@ -91,5 +92,6 @@ void AuthController::homepage(const httplib::Request& req,httplib::Response& res
 		res.set_redirect("/");
 		return;
 	}
-	res.set_content(HtmlTemplates::homepage(session),"text/html");
+	auto tickets = TicketService::get_instance().get_pending_tickets();
+	res.set_content(HtmlTemplates::homepage(session,tickets),"text/html");
 }

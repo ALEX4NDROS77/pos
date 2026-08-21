@@ -1,0 +1,11 @@
+<div class='ticket-mini {{STATUS_CLASS}}'>
+<div class='ticket-mini-header'>
+<span><strong>{{VENDOR_NAME}}</strong> - {{METODO}}</span>
+<span class='status-badge {{BADGE_CLASS}}'>{{ESTADO}}</span>
+</div>
+<div class='ticket-mini-items'>{{ITEMS}}</div>
+<form method='POST' action='/ticket/complete' style='margin-top: 8px;'>
+<input type='hidden' name='ticket_id' value='{{TICKET_ID}}'>
+<button type='submit' class='btn btn-success' style='padding: 6px 12px; font-size: 0.8rem;'>Completar</button>
+</form>
+</div>

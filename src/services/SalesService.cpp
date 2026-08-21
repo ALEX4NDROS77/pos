@@ -151,7 +151,7 @@ SalesReport SalesService::get_sales_report() {
 
 	report.total_revenue = 0.0;
 	report.total_transactions = 0;
-	
+
 	for(const auto& it : report.transactions) {
 		report.total_revenue += it.second.revenue;
 		report.total_transactions += it.second.transaction_count;
@@ -187,3 +187,62 @@ std::vector<Sale> SalesService::get_sales_by_order_id(const std::string& order_i
 	return sales;
 }
 
+SalesReport SalesService::get_sales_report_by_vendor(const std::string& vendor) {
+	SalesReport report;
+
+	auto& db = DatabaseService::get_instance();
+	std::lock_guard<std::mutex> lock(db.get_mutex());
+
+	const char* sql = "SELECT ID_VENTA,FECHA_VENTA,VENTA_TOTAL,METODO_PAGO,VENDEDOR FROM ORDENES WHERE VENDEDOR = ? ORDER BY FECHA_VENTA DESC;";
+	sqlite3_stmt* stmt;
+
+	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) == SQLITE_OK) {
+		sqlite3_bind_text(stmt,1,vendor.c_str(),-1,SQLITE_STATIC);
+
+		while(sqlite3_step(stmt) == SQLITE_ROW) {
+			Order order;
+			order.sale_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,0));
+			order.sale_time = reinterpret_cast<const char*>(sqlite3_column_text(stmt,1));
+			order.total_sale = sqlite3_column_double(stmt,2);
+			const char* method = reinterpret_cast<const char*>(sqlite3_column_text(stmt,3));
+			order.vendor = reinterpret_cast<const char*>(sqlite3_column_text(stmt,4));
+			order.payment_method = method ? method[0] : 'C';
+
+			report.transactions[order.payment_method].revenue += order.total_sale;
+			report.transactions[order.payment_method].transaction_count++;
+			report.orders.push_back(order);
+		}
+		sqlite3_finalize(stmt);
+	}
+
+	report.total_revenue = 0.0;
+	report.total_transactions = 0;
+
+	for(const auto& it : report.transactions) {
+		report.total_revenue += it.second.revenue;
+		report.total_transactions += it.second.transaction_count;
+	}
+
+	return report;
+}
+
+std::vector<std::string> SalesService::get_all_vendors_with_sales() {
+	std::vector<std::string> vendors;
+
+	auto& db = DatabaseService::get_instance();
+	std::lock_guard<std::mutex> lock(db.get_mutex());
+
+	const char* sql = "SELECT DISTINCT VENDEDOR FROM ORDENES ORDER BY VENDEDOR;";
+	sqlite3_stmt* stmt;
+
+	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) == SQLITE_OK) {
+		while(sqlite3_step(stmt) == SQLITE_ROW) {
+			const char* vendor= reinterpret_cast<const char*>(sqlite3_column_text(stmt,0));
+			if(vendor) {
+				vendors.push_back(vendor);
+			}
+		}
+		sqlite3_finalize(stmt);
+	}
+	return vendors;
+}

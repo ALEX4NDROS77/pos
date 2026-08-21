@@ -1,0 +1,79 @@
+<style>
+	.inv-table { width: 100%; border-collapse: collapse; }
+	.inv-table th, .inv-table td {
+		padding: 10px;
+		text-align: left;
+		vertical-align: middle;
+		border-bottom: 1px solid #333;
+	}
+	.inv-table th { background: #222; color: var(--primary-red); }
+	.inv-table input[type="text"], .inv-table input[type="number"] {
+		width: 100%;
+		box-sizing: border-box;
+	}
+	.inv-table .col-img { width: 60px; }
+	.inv-table .col-id { width: 100px; }
+	.inv-table .col-name { width: 150px; }
+	.inv-table .col-price { width: 80px; }
+	.inv-table .col-stock { width: 70px; }
+	.inv-table .col-url { width: 180px; }
+	.inv-table .col-actions { width: 150px; white-space: nowrap; }
+	.product-thumb {
+		width: 50px;
+		height: 50px;
+		object-fit: cover;
+		border-radius: 8px;
+		background: #333;
+	}
+	.product-thumb-placeholder {
+		width: 50px;
+		height: 50px;
+		background: linear-gradient(135deg, #333 0%, #222 100%);
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.5rem;
+	}
+	.inv-form { display: contents; }
+</style>
+<div class='container'>
+<div class='header'><h1>Gestionar Inventario</h1>
+<a href='/home' class='btn btn-primary'>Volver al Menu</a></div>
+{{MESSAGE_BLOCK}}
+<h3>Agregar Producto</h3>
+<form method="POST" action="/inventory/add" enctype="multipart/form-data" class="inline-form" style="flex-wrap: wrap;" id="add-form">
+	<input type="text" name="name" placeholder="Nombre" required style="flex: 2;">
+	<input type="number" name="price" placeholder="Precio" step="1.00" min="0" required style="flex: 1;">
+	<input type="number" name="quantity" placeholder="Cant." min="0" required style="flex: 1;">
+	<input type="file" name="imagen_original" accept="image/*" style="flex: 2;" onchange='compress_image(this, &#39;add-imagen&#39;)'>
+	<input type="hidden" name="imagen" id="add-imagen">
+	<button type="submit" class="btn btn-success">Agregar</button>
+</form>
+<script>
+function compress_image(input,target_id) {
+	if(!input.files || !input.files[0]) return;
+	const file = input.files[0];
+	const reader = new FileReader();
+	reader.onload = function(e) {
+		const img = new Image();
+		img.onload = function() {
+			const canvas = document.createElement('canvas');
+			const MAX_SIZE = 200;
+			let w = img.width, h = img.height;
+			if(w > h) { if(w > MAX_SIZE) { h *= MAX_SIZE/w; w = MAX_SIZE; } }
+			else { if(h > MAX_SIZE) { w *= MAX_SIZE/h; h = MAX_SIZE; } }
+			canvas.width = w; canvas.height = h;
+			canvas.getContext('2d').drawImage(img,0,0,w,h);
+			document.getElementById(target_id).value = canvas.toDataURL('image/jpeg',0.7);
+		};
+		img.src = e.target.result;
+	};
+	reader.readAsDataURL(file);
+}
+</script>
+<h3 style='margin-top: 30px;'>Productos</h3>
+<table class='inv-table'>
+<tr><th class='col-img'>Img</th><th class='col-id'>ID</th><th class='col-name'>Producto</th><th class='col-price'>Precio</th><th class='col-stock'>Stock</th><th class='col-img'>Imagen</th><th class='col-actions'>Acciones</th></tr>
+{{PRODUCT_ROWS}}
+</table></div>

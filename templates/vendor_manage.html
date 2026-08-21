@@ -1,0 +1,14 @@
+<div class='container'>
+<div class='header'><h1>Gestionar Vendedores</h1>
+<a href='/home' class='btn btn-primary'>Volver al Menu</a></div>
+{{MESSAGE_BLOCK}}
+<h3>Agregar Vendedor</h3>
+<form method="POST" action="/vendors/add" class="inline-form">
+	<input type="text" name="nombre" placeholder="Usuario" required style="flex: 2;">
+	<input type="password" name="password" placeholder="Contraseña" required style="flex: 2;">
+	<button type="submit" class="btn btn-success">Agregar</button>
+</form>
+<h3 style='margin-top: 30px;'>Vendedores</h3>
+<table><tr><th>ID</th><th>Usuario</th><th>Estado</th><th>Acciones</th></tr>
+{{VENDOR_ROWS}}
+</table></div>

@@ -1,0 +1,17 @@
+<div class="container login-box">
+	<h1>Acceso Administrador</h1>
+	<form method="POST" action="/login/admin">
+		<div class="form-group">
+			<label>Usuario:</label>
+			<input type="text" name="username" placeholder="Ingrese usuario" required>
+		</div>
+		<div class="form-group">
+			<label>Contraseña:</label>
+			<input type="password" name="password" placeholder="Ingrese contraseña" required>
+		</div>
+		{{ERROR_BLOCK}}
+		<button type="submit" class="btn btn-primary" style="width: 100%;">Ingresar</button>
+	</form>
+	<br>
+	<a href="/" class="btn btn-danger">Volver</a>
+</div>

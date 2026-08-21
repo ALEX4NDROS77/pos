@@ -1,0 +1,102 @@
+<style>
+.pin-display {
+	background: rgba(0,0,0,0.8);
+	border: 2px solid var(--primary-red);
+	border-radius: 10px;
+	padding: 15px;
+	font-size: 2.5rem;
+	letter-spacing: 15px;
+	text-align: center;
+	color: var(--primary-red);
+	margin-bottom: 20px;
+	min-height: 60px;
+}
+.pin-keypad {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 10px;
+	max-width: 280px;
+	margin: 0 auto 20px;
+}
+.pin-btn {
+	padding: 20px;
+	font-size: 1.6rem;
+	font-weight: bold;
+	background: linear-gradient(135deg, #333, #111 100%);
+	border: 2px solid #444;
+	border-radius: 12px;
+	color: white;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+.pin-btn:hover, .pin-btn:active {
+	background: linear-gradient(135deg, var(--primary-red) 0%, #660000 100%);
+	border-color: var(--primary-red);
+	transform: scale(1.05);
+}
+.pin-btn.clear { background: #660000; }
+.vendor-select { margin-bottom: 20px; }
+</style>
+<div class="container login-box" style="text-align: center;">
+	<h1>Acceso Vendedor</h1>
+	<form method="POST" action="/login/vendor" id="vendor_form">
+		<div class="form-group vendor-select">
+			<label>Seleccione Vendedor:</label>
+			<select name="username" id="vendor_select" required>
+				<option value="">-- Seleccionar --</option>
+				{{VENDOR_OPTIONS}}
+			</select>
+		</div>
+		<input type="hidden" name="password" id="pin_input" value="">
+		<div class="pin-display" id="pin_display">____</div>
+		{{ERROR_BLOCK}}
+		<div class="pin-keypad">
+			<button type="button" class="pin-btn" onclick='add_digit(&#39;1&#39;)'>1</button>
+			<button type="button" class="pin-btn" onclick='add_digit(&#39;2&#39;)'>2</button>
+			<button type="button" class="pin-btn" onclick='add_digit(&#39;3&#39;)'>3</button>
+			<button type="button" class="pin-btn" onclick='add_digit(&#39;4&#39;)'>4</button>
+			<button type="button" class="pin-btn" onclick='add_digit(&#39;5&#39;)'>5</button>
+			<button type="button" class="pin-btn" onclick='add_digit(&#39;6&#39;)'>6</button>
+			<button type="button" class="pin-btn" onclick='add_digit(&#39;7&#39;)'>7</button>
+			<button type="button" class="pin-btn" onclick='add_digit(&#39;8&#39;)'>8</button>
+			<button type="button" class="pin-btn" onclick='add_digit(&#39;9&#39;)'>9</button>
+			<button type="button" class="pin-btn clear" onclick='clear_pin()'>C</button>
+			<button type="button" class="pin-btn" onclick='add_digit(&#39;0&#39;)'>0</button>
+			<button type="button" class="pin-btn" onclick='delete_digit()'>&larr;</button>
+		</div>
+		<button type="submit" class="btn btn-success" style="width: 100%;">Entrar</button>
+	</form>
+	<br>
+	<a href="/" class="btn btn-danger">Volver</a>
+</div>
+<script>
+	let pin = '';
+	const pin_input = document.getElementById('pin_input');
+	const pin_display = document.getElementById('pin_display');
+
+	function update_display() {
+		let display = '';
+		for(let i = 0; i < 4; i++) {
+			display += (i < pin.length) ? '*' : '_';
+		}
+		pin_display.textContent = display;
+		pin_input.value = pin;
+	}
+
+	function add_digit(d) {
+		if(pin.length < 4) {
+			pin += d;
+			update_display();
+		}
+	}
+
+	function delete_digit() {
+		pin = pin.slice(0, -1);
+		update_display();
+	}
+
+	function clear_pin() {
+		pin = '';
+		update_display();
+	}
+</script>

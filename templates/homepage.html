@@ -1,0 +1,34 @@
+<style>
+	.ticket-mini { background: #1a1a1a; border: 2px solid #333; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+	.ticket-mini.pendiente { border-left: 4px solid var(--accent-orange); }
+	.ticket-mini.en_proceso { border-left: 3px solid var(--primary-red); }
+	.ticket-mini-header { display: flex; justify-content: space-between; margin-bottom: 8px }
+	.ticket-mini-items { font-size: 0.9rem; color: #aaa; }
+	.ticket-section { margin-top: 20px }
+	.status-badge { padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; }
+	.status-pendiente { background: rgba(255,69,0,0.2); color: var(--accent-orange); }
+	.status-en_proceso { background: rgba(212,20,20,0.2); color: var(--primary-red); }
+</style>
+<div class='container'>
+<div class='header'>
+<div class='brand-block' style='display: flex; align-items: center; gap: 15px;'>
+<img src='/assets/diablito_sentado.png' style='height: 100px; border-radius: 12px;'>
+<div><img src='/assets/mvte.png' style='height: 45px;'><h1>{{BUSINESS_NAME}}</h1></div>
+</div>
+<div class='user-info' style='font-size: 1.1rem;'>
+Operador: <strong>{{USERNAME}}</strong><br>
+<a href='/logout' class='btn btn-danger' style='margin-top:10px;'>Salir</a>
+</div>
+</div>
+<h2>Menu</h2>
+<div class='menu-grid'>
+<a href='/cart' class='menu-item'>Carrito</a>
+<a href='/cart/confirm' class='menu-item'>Confirmar Venta</a>
+<a href='/inventory/view' class='menu-item'>Ver Inventario</a>
+{{ADMIN_MENU_ITEMS}}
+</div>
+<div class='ticket-section'>
+<h2>Tickets Pendientes <span style='color: var(--accent-orange);'>({{TICKET_COUNT}})</span></h2>
+{{TICKET_LIST}}
+</div>
+</div>

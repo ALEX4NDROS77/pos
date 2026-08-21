@@ -1,0 +1,14 @@
+<tr>
+<td class='col-img'>{{IMAGE_CELL}}</td>
+<td class='col-id'>{{ID}}</td>
+<form method='POST' action='/inventory/update' enctype='multipart/form-data' class='inv-form'>
+<input type='hidden' name='id' value='{{ID}}'>
+<input type='hidden' name='imagen' id='img-{{ID}}'>
+<td class='col-name'><input type='text' name='name' value='{{NAME}}'></td>
+<td class='col-price'><input type='number' name='price' value='{{PRICE}}' step='1.00' min='0'></td>
+<td class='col-stock'><input type='number' name='quantity' value='{{STOCK}}' min='0'></td>
+<td class='col-img'><input type='file' accept='image/*' style='width: 100px;' onchange="compress_image(this, 'img-{{ID}}')"></td>
+<td class='col-actions'>
+<button type='submit' class='btn btn-primary'>Guardar</button>
+</form>
+<a href='/inventory/delete/{{ID}}' class='btn btn-danger' onclick='return confirm("Eliminar producto?")'>Eliminar</a></td></tr>

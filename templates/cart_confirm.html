@@ -1,0 +1,18 @@
+<div class='container'>
+<div class='header'><h1>Confirmar Orden</h1>
+<a href='/home' class='btn btn-primary'>Volver al Menu</a></div>
+<h3>Detalle de la Orden</h3>
+<table><tr><th>Producto</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th></tr>
+{{ORDER_ROWS}}
+</table>
+<div class='cart-summary'>
+<span class='total'>Total: {{TOTAL}}</span>
+</div>
+<h3>Metodo de Pago:</h3>
+<div class='role-select'>
+<a href='/cart/checkout/E' class='btn btn-success role-btn'>Efectivo</a>
+<a href='/cart/checkout/T' class='btn btn-success role-btn'>Tarjeta</a>
+<a href='/cart/checkout/C' class='btn btn-success role-btn'>Cortesia</a>
+</div>
+<a href='/cart' class='btn btn-danger' style='margin-top: 20px;'>Volver al Carrito</a>
+</div>
