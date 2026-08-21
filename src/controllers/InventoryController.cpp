@@ -21,29 +21,20 @@ void InventoryController::register_routes(httplib::Server& server) {
 }
 
 void InventoryController::view_inventory(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 	res.set_content(HtmlTemplates::inventory_view_page(session),"text/html");
 }
 
 void InventoryController::manage_inventory(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 	res.set_content(HtmlTemplates::inventory_manage_page(session),"text/html");
 }
 
 void InventoryController::add_product(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 
 	LOG_INFO("InventoryController::add_product: Processing request");
 
@@ -85,11 +76,8 @@ void InventoryController::add_product(const httplib::Request& req,httplib::Respo
 }
 
 void InventoryController::update_product(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 
 	LOG_INFO("InventoryController::update_product: Processing request");
 
@@ -132,11 +120,8 @@ void InventoryController::update_product(const httplib::Request& req,httplib::Re
 }
 
 void InventoryController::delete_product(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 
 	std::string id = req.matches[1];
 	

@@ -10,22 +10,16 @@ void ReportController::register_routes(httplib::Server& server) {
 }
 
 void ReportController::sales_report(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 
 	auto report = SalesService::get_instance().get_sales_report();
 	res.set_content(HtmlTemplates::sales_report_page(session,report),"text/html");
 }
 
 void ReportController::sales_report_by_vendor(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 
 	std::string vendor = req.matches[1].str();
 	auto report = SalesService::get_instance().get_sales_report_by_vendor(vendor);

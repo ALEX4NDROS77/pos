@@ -13,21 +13,15 @@ void VendorController::register_routes(httplib::Server& server) {
 }
 
 void VendorController::manage_vendors(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 
 	res.set_content(HtmlTemplates::vendor_manage_page(session),"text/html");
 }
 
 void VendorController::add_vendor(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 
 	std::string nombre = req.get_param_value("nombre");
 	std::string password = req.get_param_value("password");
@@ -46,11 +40,8 @@ void VendorController::add_vendor(const httplib::Request& req,httplib::Response&
 }
 
 void VendorController::update_vendor(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 
 	std::string id = req.get_param_value("id");
 	std::string nombre = req.get_param_value("nombre");
@@ -68,11 +59,8 @@ void VendorController::update_vendor(const httplib::Request& req,httplib::Respon
 }
 
 void VendorController::delete_vendor(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 
 	std::string id = req.matches[1];
 
@@ -90,11 +78,8 @@ void VendorController::delete_vendor(const httplib::Request& req,httplib::Respon
 }
 
 void VendorController::toggle_vendor(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session || session->role != "admin") {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
 
 	std::string id = req.matches[1];
 	auto vendor = VendorService::get_instance().get_vendor_by_id(id);

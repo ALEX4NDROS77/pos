@@ -8,11 +8,8 @@ void TicketController::register_routes(httplib::Server& server) {
 }
 
 void TicketController::complete_ticket(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 
 	std::string ticket_id = req.get_param_value("ticket_id");
 

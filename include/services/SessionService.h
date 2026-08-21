@@ -15,6 +15,11 @@ class SessionService {
 		Session* get_session(const std::string& session_id);
 		Session* get_session_from_request(const httplib::Request& req);
 
+		// Look up the session for req; on failure, redirect res to "/" and return nullptr.
+		Session* require_session(const httplib::Request& req,httplib::Response& res);
+		// Same as require_session, but also redirects (and returns nullptr) if the session's role doesn't match.
+		Session* require_role(const httplib::Request& req,httplib::Response& res,const std::string& role);
+
 		bool validate_admin_password(const std::string& password);
 
 	private:

@@ -18,20 +18,14 @@ void CartController::register_routes(httplib::Server& server) {
 }
 
 void CartController::cart_page(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 	res.set_content(HtmlTemplates::cart_page(session),"text/html");
 }
 
 void CartController::checkout_get(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 
 	char payment_method = req.matches[1].str()[0];
 
@@ -47,11 +41,8 @@ void CartController::checkout_get(const httplib::Request& req,httplib::Response&
 }
 
 void CartController::add_to_cart(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 	std::string product_id = req.get_param_value("product_id");
 	int quantity = std::stoi(req.get_param_value("quantity"));
 
@@ -69,11 +60,8 @@ void CartController::add_to_cart(const httplib::Request& req,httplib::Response& 
 }
 
 void CartController::update_cart_item(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 
 	std::string product_id = req.get_param_value("product_id");
 	int quantity = std::stoi(req.get_param_value("quantity"));
@@ -83,11 +71,8 @@ void CartController::update_cart_item(const httplib::Request& req,httplib::Respo
 }
 
 void CartController::update_cart_item_get(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 
 	std::string product_id = req.matches[1].str();
 	int quantity = std::stoi(req.matches[2].str());
@@ -97,11 +82,8 @@ void CartController::update_cart_item_get(const httplib::Request& req,httplib::R
 }
 
 void CartController::remove_from_cart(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 	
 	std::string product_id = req.matches[1];
 	LOG_INFO("CartController::remove_from_cart - Cart remove: user='" + session->username + "', product='" + product_id + "'");
@@ -110,11 +92,8 @@ void CartController::remove_from_cart(const httplib::Request& req,httplib::Respo
 }
 
 void CartController::clear_cart(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 	
 	LOG_INFO("CartController::clear_cart - user='" + session->username + "'");
 	CartService::get_instance().clear_cart(session);
@@ -122,20 +101,14 @@ void CartController::clear_cart(const httplib::Request& req,httplib::Response& r
 }
 
 void CartController::confirm_page(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 	res.set_content(HtmlTemplates::cart_confirm_page(session),"text/html");
 }
 
 void CartController::checkout(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 	
 	std::string payment_method_str = req.get_param_value("payment_method");
 	char payment_method = payment_method_str.empty() ? 'E' : payment_method_str[0];

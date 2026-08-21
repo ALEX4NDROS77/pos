@@ -87,11 +87,8 @@ void AuthController::logout(const httplib::Request& req,httplib::Response& res) 
 }
 
 void AuthController::homepage(const httplib::Request& req,httplib::Response& res) {
-	auto* session = SessionService::get_instance().get_session_from_request(req);
-	if(!session) {
-		res.set_redirect("/");
-		return;
-	}
+	auto* session = SessionService::get_instance().require_session(req,res);
+	if(!session) return;
 	auto tickets = TicketService::get_instance().get_pending_tickets();
 	res.set_content(HtmlTemplates::homepage(session,tickets),"text/html");
 }

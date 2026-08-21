@@ -38,6 +38,24 @@ Session* SessionService::get_session_from_request(const httplib::Request& req) {
 	return nullptr;
 }
 
+Session* SessionService::require_session(const httplib::Request& req,httplib::Response& res) {
+	auto* session = get_session_from_request(req);
+	if(!session) {
+		res.set_redirect("/");
+		return nullptr;
+	}
+	return session;
+}
+
+Session* SessionService::require_role(const httplib::Request& req,httplib::Response& res,const std::string& role) {
+	auto* session = get_session_from_request(req);
+	if(!session || session->role != role) {
+		res.set_redirect("/");
+		return nullptr;
+	}
+	return session;
+}
+
 bool SessionService::validate_admin_password(const std::string& password) {
 	return password == ADMIN_PASSWORD;
 }
