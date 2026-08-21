@@ -8,6 +8,7 @@
 #include <controllers/TicketController.h>
 #include <controllers/VendorController.h>
 #include <services/DatabaseService.h>
+#include <utils/AppConfig.h>
 #include <utils/Logger.h>
 #include <utils/StaticAssets.h>
 
@@ -18,6 +19,8 @@ int main() {
 	LOG_INFO("==================================");
 	LOG_INFO("  POS System - Initializing...");
 	LOG_INFO("==================================");
+
+	AppConfig::get_instance().load("branding.conf");
 
 	if(!DatabaseService::get_instance().initialize("pos.db")) {
 		LOG_ERROR("Failed to initialize database!");

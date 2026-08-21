@@ -46,6 +46,7 @@ set(SOURCES
 	src/views/HtmlTemplates.cpp
 	src/utils/Utils.cpp
 	src/utils/Logger.cpp
+	src/utils/AppConfig.cpp
 )
 
 add_executable(pos_server ${SOURCES})
