@@ -42,7 +42,7 @@ set(SOURCES
 	src/controllers/InventoryController.cpp
 	src/controllers/ReportController.cpp
 	src/controllers/VendorController.cpp
-	src/controllers/BarController.cpp
+	src/controllers/TicketController.cpp
 	src/views/HtmlTemplates.cpp
 	src/utils/Utils.cpp
 	src/utils/Logger.cpp

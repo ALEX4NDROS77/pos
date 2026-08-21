@@ -41,8 +41,3 @@ Session* SessionService::get_session_from_request(const httplib::Request& req) {
 bool SessionService::validate_admin_password(const std::string& password) {
 	return password == ADMIN_PASSWORD;
 }
-
-bool SessionService::validate_bar_password(const std::string& password) {
-	return password == BAR_PASSWORD;
-}
-

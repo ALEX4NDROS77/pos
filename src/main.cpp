@@ -2,10 +2,10 @@
 #include <iostream>
 
 #include <controllers/AuthController.h>
-#include <controllers/BarController.h>
 #include <controllers/CartController.h>
 #include <controllers/InventoryController.h>
 #include <controllers/ReportController.h>
+#include <controllers/TicketController.h>
 #include <controllers/VendorController.h>
 #include <services/DatabaseService.h>
 #include <utils/Logger.h>
@@ -33,7 +33,7 @@ int main() {
 	InventoryController::register_routes(server);
 	ReportController::register_routes(server);
 	VendorController::register_routes(server);
-	BarController::register_routes(server);
+	TicketController::register_routes(server);
 
 	LOG_INFO("==================================");
 	LOG_INFO("  Server running on:");
@@ -41,7 +41,6 @@ int main() {
 	LOG_INFO("==================================");
 	LOG_INFO("	Credentials:");
 	LOG_INFO("	- Admin: admin123");
-	LOG_INFO("	- Bar: bar123");
 	LOG_INFO("	- Vendors: vendedor1/1234, vendedor2/5678");
 	LOG_INFO("==================================");
 
@@ -53,4 +52,3 @@ int main() {
 
 	return 0;
 }
-

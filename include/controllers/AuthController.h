@@ -13,8 +13,6 @@ class AuthController {
 		static void vendor_login_post(const httplib::Request& req,httplib::Response& res);
 		static void admin_login_page(const httplib::Request& req,httplib::Response& res);
 		static void admin_login_post(const httplib::Request& req,httplib::Response& res);
-		static void bar_login_page(const httplib::Request& req,httplib::Response& res);
-		static void bar_login_post(const httplib::Request& req,httplib::Response& res);
 		static void logout(const httplib::Request& req,httplib::Response& res);
 		static void homepage(const httplib::Request& req,httplib::Response& res);
 };

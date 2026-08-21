@@ -11,8 +11,6 @@ void AuthController::register_routes(httplib::Server& server) {
 	server.Post("/login/vendor",vendor_login_post);
 	server.Get("/login/admin",admin_login_page);
 	server.Post("/login/admin",admin_login_post);
-	server.Get("/login/bar",bar_login_page);
-	server.Post("/login/bar",bar_login_post);
 	server.Get("/logout",logout);
 	server.Get("/home",homepage);
 }
@@ -93,31 +91,5 @@ void AuthController::homepage(const httplib::Request& req,httplib::Response& res
 		res.set_redirect("/");
 		return;
 	}
-	if(session->role == "bar") {
-		res.set_redirect("/bar");
-		return;
-	}
 	res.set_content(HtmlTemplates::homepage(session),"text/html");
 }
-
-void AuthController::bar_login_page(const httplib::Request& req,httplib::Response& res) {
-	res.set_content(HtmlTemplates::bar_login_page(),"text/html");
-}
-
-void AuthController::bar_login_post(const httplib::Request& req,httplib::Response& res) {
-	std::string password = req.get_param_value("password");
-
-	LOG_INFO("AuthController::bar_login_post - Login attempt: bar");
-
-	if(!SessionService::get_instance().validate_bar_password(password)) {
-		LOG_WARNING("AuthController::bar_login_post - Login failed: invalid bar password");
-		res.set_content(HtmlTemplates::bar_login_page("Contraseña incorrecta!"),"text/html");
-		return;
-	}
-
-	std::string session_id = SessionService::get_instance().create_session("Bar","bar");
-	LOG_INFO("AuthController::bar_login_post - Login success: bar");
-	res.set_header("Set-Cookie","session_id=" + session_id + "; Path=/; HttpOnly");
-	res.set_redirect("/bar");
-}
-
