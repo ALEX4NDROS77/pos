@@ -6,6 +6,8 @@
 #include <vector>
 #include <optional>
 
+class DatabaseService;
+
 class TicketService {
 	public:
 		static TicketService& get_instance();
@@ -21,6 +23,9 @@ class TicketService {
 		TicketService() = default;
 		TicketService(const TicketService&) = delete;
 		TicketService& operator=(const TicketService&) = delete;
+
+		// Same as get_ticket_items, but assumes db's mutex is already held by the caller.
+		std::vector<TicketItem> get_ticket_items_locked(const std::string& ticket_id,DatabaseService& db);
 };
 
 #endif

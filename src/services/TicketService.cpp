@@ -1,6 +1,7 @@
 #include <services/TicketService.h>
 #include <services/DatabaseService.h>
 #include <utils/Logger.h>
+#include <utils/SqliteStatement.h>
 #include <utils/Utils.h>
 #include <sqlite3.h>
 
@@ -20,47 +21,35 @@ std::optional<std::string> TicketService::create_ticket(Session* session,const s
 	std::string ticket_id = "TKT-" + Utils::generate_uuid().substr(0,8);
 	std::string fecha = Utils::get_timestamp();
 
-	const char* ticket_sql = "INSERT INTO TICKETS (ID_TICKET,ORDEN_ID,VENDEDOR_NOMBRE,FECHA_CREACION,ESTADO) VALUES (?,?,?,?,'PENDIENTE');";
-	sqlite3_stmt* stmt;
+	{
+		SqliteStatement ticket_stmt(db.get_connection(),"INSERT INTO TICKETS (ID_TICKET,ORDEN_ID,VENDEDOR_NOMBRE,FECHA_CREACION,ESTADO) VALUES (?,?,?,?,'PENDIENTE');");
+		if(!ticket_stmt.ok()) return std::nullopt;
 
-	if(sqlite3_prepare_v2(db.get_connection(),ticket_sql,-1,&stmt,nullptr) != SQLITE_OK) {
-		return std::nullopt;
+		ticket_stmt.bind(1,ticket_id);
+		ticket_stmt.bind(2,orden_id);
+		ticket_stmt.bind(3,session->username);
+		ticket_stmt.bind(4,fecha);
+
+		if(!ticket_stmt.exec()) return std::nullopt;
 	}
 
-	sqlite3_bind_text(stmt,1,ticket_id.c_str(),-1,SQLITE_STATIC);
-	sqlite3_bind_text(stmt,2,orden_id.c_str(),-1,SQLITE_STATIC);
-	sqlite3_bind_text(stmt,3,session->username.c_str(),-1,SQLITE_STATIC);
-	sqlite3_bind_text(stmt,4,fecha.c_str(),-1,SQLITE_STATIC);
-
-	if(sqlite3_step(stmt) != SQLITE_DONE) {
-		sqlite3_finalize(stmt);
-		return std::nullopt;
-	}
-	sqlite3_finalize(stmt);
-
-	const char* item_sql = "INSERT INTO TICKET_ITEMS (TICKET_ID,PRODUCTO_ID,NOMBRE_PRODUCTO,CANTIDAD) VALUES (?,?,?,?);";
-	if(sqlite3_prepare_v2(db.get_connection(),item_sql,-1,&stmt,nullptr) != SQLITE_OK) {
-		return std::nullopt;
-	}
+	SqliteStatement item_stmt(db.get_connection(),"INSERT INTO TICKET_ITEMS (TICKET_ID,PRODUCTO_ID,NOMBRE_PRODUCTO,CANTIDAD) VALUES (?,?,?,?);");
+	if(!item_stmt.ok()) return std::nullopt;
 
 	sqlite3_exec(db.get_connection(),"BEGIN TRANSACTION;",nullptr,nullptr,nullptr);
 
 	for(const auto& item : session->cart) {
-		sqlite3_reset(stmt);
-		sqlite3_clear_bindings(stmt);
+		item_stmt.reset();
 
-		sqlite3_bind_text(stmt,1,ticket_id.c_str(),-1,SQLITE_STATIC);
-		sqlite3_bind_text(stmt,2,item.product_id.c_str(),-1,SQLITE_STATIC);
-		sqlite3_bind_text(stmt,3,item.name.c_str(),-1,SQLITE_STATIC);
-		sqlite3_bind_int(stmt,4,item.quantity);
+		item_stmt.bind(1,ticket_id);
+		item_stmt.bind(2,item.product_id);
+		item_stmt.bind(3,item.name);
+		item_stmt.bind(4,item.quantity);
 
-		if(sqlite3_step(stmt) != SQLITE_DONE) {
-			continue;
-		}
+		item_stmt.exec();
 	}
 
 	sqlite3_exec(db.get_connection(),"COMMIT;",nullptr,nullptr,nullptr);
-	sqlite3_finalize(stmt);
 
 	return ticket_id;
 }
@@ -70,34 +59,29 @@ std::vector<Ticket> TicketService::get_pending_tickets() {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = R"(
+	SqliteStatement stmt(db.get_connection(),R"(
 		SELECT T.ID_TICKET,T.ORDEN_ID,T.VENDEDOR_NOMBRE,T.FECHA_CREACION,T.ESTADO,O.METODO_PAGO
 		FROM TICKETS T
 		JOIN ORDENES O ON T.ORDEN_ID = O.ID_VENTA
 		WHERE T.ESTADO IN ('PENDIENTE','EN_PROCESO')
 		ORDER BY T.FECHA_CREACION ASC;
-	)";
-	sqlite3_stmt* stmt;
+	)");
+	if(!stmt.ok()) return tickets;
 
-	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) != SQLITE_OK) {
-		return tickets;
-	}
-
-	while(sqlite3_step(stmt) == SQLITE_ROW) {
+	while(stmt.step() == SQLITE_ROW) {
 		Ticket t;
-		t.id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,0));
-		t.visitor_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,1));
-		t.vendor_name = reinterpret_cast<const char*>(sqlite3_column_text(stmt,2));
-		t.fecha_creacion = reinterpret_cast<const char*>(sqlite3_column_text(stmt,3));
-		t.estado = reinterpret_cast<const char*>(sqlite3_column_text(stmt,4));
-		const char* metodo = reinterpret_cast<const char*>(sqlite3_column_text(stmt,5));
-		t.metodo_pago = metodo ? metodo[0] : 'E';
+		t.id = stmt.column_text(0);
+		t.visitor_id = stmt.column_text(1);
+		t.vendor_name = stmt.column_text(2);
+		t.fecha_creacion = stmt.column_text(3);
+		t.estado = stmt.column_text(4);
+		std::string metodo = stmt.column_text(5);
+		t.metodo_pago = metodo.empty() ? 'E' : metodo[0];
 		tickets.push_back(t);
 	}
-	sqlite3_finalize(stmt);
 
 	for(auto& ticket : tickets) {
-		ticket.items = get_ticket_items(ticket.id);
+		ticket.items = get_ticket_items_locked(ticket.id,db);
 	}
 
 	return tickets;
@@ -108,23 +92,18 @@ std::vector<Ticket> TicketService::get_all_tickets() {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = "SELECT ID_TICKET,ORDEN_ID,VENDEDOR_NOMBRE,FECHA_CREACION,ESTADO FROM TICKETS ORDER BY FECHA_CREACION DESC;";
-	sqlite3_stmt* stmt;
+	SqliteStatement stmt(db.get_connection(),"SELECT ID_TICKET,ORDEN_ID,VENDEDOR_NOMBRE,FECHA_CREACION,ESTADO FROM TICKETS ORDER BY FECHA_CREACION DESC;");
+	if(!stmt.ok()) return tickets;
 
-	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) != SQLITE_OK) {
-		return tickets;
-	}
-
-	while(sqlite3_step(stmt) == SQLITE_ROW) {
+	while(stmt.step() == SQLITE_ROW) {
 		Ticket t;
-		t.id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,0));
-		t.visitor_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,1));
-		t.vendor_name = reinterpret_cast<const char*>(sqlite3_column_text(stmt,2));
-		t.fecha_creacion = reinterpret_cast<const char*>(sqlite3_column_text(stmt,3));
-		t.estado = reinterpret_cast<const char*>(sqlite3_column_text(stmt,4));
+		t.id = stmt.column_text(0);
+		t.visitor_id = stmt.column_text(1);
+		t.vendor_name = stmt.column_text(2);
+		t.fecha_creacion = stmt.column_text(3);
+		t.estado = stmt.column_text(4);
 		tickets.push_back(t);
 	}
-	sqlite3_finalize(stmt);
 
 	return tickets;
 }
@@ -133,27 +112,21 @@ std::optional<Ticket> TicketService::get_ticket_by_id(const std::string& id) {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = "SELECT ID_TICKET,ORDEN_ID,VENDEDOR_NOMBRE,FECHA_CREACION,ESTADO FROM TICKETS WHERE ID_TICKET = ?;"; 
-	sqlite3_stmt* stmt;
+	SqliteStatement stmt(db.get_connection(),"SELECT ID_TICKET,ORDEN_ID,VENDEDOR_NOMBRE,FECHA_CREACION,ESTADO FROM TICKETS WHERE ID_TICKET = ?;");
+	if(!stmt.ok()) return std::nullopt;
 
-	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) != SQLITE_OK) {
-		return std::nullopt;
-	}
+	stmt.bind(1,id);
 
-	if(sqlite3_step(stmt) != SQLITE_ROW) {
-		sqlite3_finalize(stmt);
-		return std::nullopt;
-	}
+	if(stmt.step() != SQLITE_ROW) return std::nullopt;
 
 	Ticket t;
-	t.id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,0));
-	t.visitor_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,1));
-	t.vendor_name = reinterpret_cast<const char*>(sqlite3_column_text(stmt,2));
-	t.fecha_creacion = reinterpret_cast<const char*>(sqlite3_column_text(stmt,3));
-	t.estado = reinterpret_cast<const char*>(sqlite3_column_text(stmt,4));
+	t.id = stmt.column_text(0);
+	t.visitor_id = stmt.column_text(1);
+	t.vendor_name = stmt.column_text(2);
+	t.fecha_creacion = stmt.column_text(3);
+	t.estado = stmt.column_text(4);
 
-	sqlite3_finalize(stmt);
-	t.items = get_ticket_items(t.id);
+	t.items = get_ticket_items_locked(t.id,db);
 	return t;
 }
 
@@ -161,19 +134,16 @@ bool TicketService::update_ticket_status(const std::string& id,const std::string
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = "UPDATE TICKETS SET ESTADO = ? WHERE ID_TICKET = ?;";
-	sqlite3_stmt* stmt;
-
-	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) != SQLITE_OK) {
+	SqliteStatement stmt(db.get_connection(),"UPDATE TICKETS SET ESTADO = ? WHERE ID_TICKET = ?;");
+	if(!stmt.ok()) {
 		LOG_ERROR("TicketService::update_ticket_status - failed to prepare SQL");
 		return false;
 	}
 
-	sqlite3_bind_text(stmt,1,estado.c_str(),-1,SQLITE_STATIC);
-	sqlite3_bind_text(stmt,2,id.c_str(),-1,SQLITE_STATIC);
+	stmt.bind(1,estado);
+	stmt.bind(2,id);
 
-	bool success = sqlite3_step(stmt) == SQLITE_DONE;
-	sqlite3_finalize(stmt);
+	bool success = stmt.exec();
 
 	if(success) {
 		LOG_INFO("TicketSErvice::update_ticket_status - ticket='" + id + "' -> '" + estado + "'");
@@ -185,28 +155,26 @@ bool TicketService::update_ticket_status(const std::string& id,const std::string
 }
 
 std::vector<TicketItem> TicketService::get_ticket_items(const std::string& ticket_id) {
-	std::vector<TicketItem> items;
 	auto& db = DatabaseService::get_instance();
+	std::lock_guard<std::mutex> lock(db.get_mutex());
+	return get_ticket_items_locked(ticket_id,db);
+}
 
-	const char* sql = "SELECT PRODUCTO_ID,NOMBRE_PRODUCTO,CANTIDAD FROM TICKET_ITEMS WHERE TICKET_ID = ?;";
-	sqlite3_stmt* stmt;
+std::vector<TicketItem> TicketService::get_ticket_items_locked(const std::string& ticket_id,DatabaseService& db) {
+	std::vector<TicketItem> items;
 
-	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) != SQLITE_OK) {
-		return items;
-	}
+	SqliteStatement stmt(db.get_connection(),"SELECT PRODUCTO_ID,NOMBRE_PRODUCTO,CANTIDAD FROM TICKET_ITEMS WHERE TICKET_ID = ?;");
+	if(!stmt.ok()) return items;
 
-	sqlite3_bind_text(stmt,1,ticket_id.c_str(),-1,SQLITE_STATIC);
+	stmt.bind(1,ticket_id);
 
-	while(sqlite3_step(stmt) == SQLITE_ROW) {
+	while(stmt.step() == SQLITE_ROW) {
 		TicketItem item;
-		item.product_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,0));
-		item.name = reinterpret_cast<const char*>(sqlite3_column_text(stmt,1));
-		item.quantity = sqlite3_column_int(stmt,2);
+		item.product_id = stmt.column_text(0);
+		item.name = stmt.column_text(1);
+		item.quantity = stmt.column_int(2);
 		items.push_back(item);
 	}
-	sqlite3_finalize(stmt);
 
 	return items;
 }
-
-

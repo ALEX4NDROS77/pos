@@ -1,3 +1,4 @@
+#include <mutex>
 #include <sqlite3.h>
 #include <services/CartService.h>
 #include <services/DatabaseService.h>
@@ -5,7 +6,9 @@
 #include <services/SalesService.h>
 #include <services/TicketService.h>
 #include <utils/Logger.h>
+#include <utils/SqliteStatement.h>
 #include <utils/Utils.h>
+#include <vector>
 #include <views/HtmlTemplates.h>
 
 SalesService& SalesService::get_instance() {
@@ -36,86 +39,87 @@ std::optional<std::string> SalesService::checkout(Session* session,char payment_
 	std::string order_id = "ORD-" + Utils::generate_uuid().substr(0,8);
 	std::string date = Utils::get_current_time();
 	double total = CartService::get_instance().get_cart_total(session);
-
-	const char* order_sql = "INSERT INTO ORDENES (ID_VENTA, FECHA_VENTA, VENTA_TOTAL, METODO_PAGO, VENDEDOR) VALUES (?, ?, ?, ?, ?);";
-	sqlite3_stmt* stmt;
-
-	if(sqlite3_prepare_v2(db.get_connection(),order_sql,-1,&stmt,nullptr) != SQLITE_OK) {
-		LOG_ERROR("SalesService::checkout - failed to prepare order SQL");
-		return std::nullopt;
-	}
-
 	std::string username = session->username;
 	char method[2] = {payment_method,'\0'};
 
-	sqlite3_bind_text(stmt,1,order_id.c_str(),-1,SQLITE_STATIC);
-	sqlite3_bind_text(stmt,2,date.c_str(),-1,SQLITE_STATIC);
-	sqlite3_bind_double(stmt,3,total);
-	sqlite3_bind_text(stmt,4,method,-1,SQLITE_STATIC);
-	sqlite3_bind_text(stmt,5,username.c_str(),-1,SQLITE_STATIC);
+	sqlite3_exec(db.get_connection(),"BEGIN IMMEDIATE;",nullptr,nullptr,nullptr);
 
-	if(sqlite3_step(stmt) != SQLITE_DONE) {
-		LOG_ERROR("SalesService::checkout - failed to insert order");
-		sqlite3_finalize(stmt);
-		return std::nullopt;
+	{
+		SqliteStatement order_stmt(db.get_connection(),"INSERT INTO ORDENES (ID_VENTA, FECHA_VENTA, VENTA_TOTAL, METODO_PAGO, VENDEDOR) VALUES (?, ?, ?, ?, ?);");
+		if(!order_stmt.ok()) {
+			LOG_ERROR("SalesService::checkout - failed to prepare order SQL");
+			sqlite3_exec(db.get_connection(),"ROLLBACK;",nullptr,nullptr,nullptr);
+			return std::nullopt;
+		}
+
+		order_stmt.bind(1,order_id);
+		order_stmt.bind(2,date);
+		order_stmt.bind(3,total);
+		order_stmt.bind(4,method);
+		order_stmt.bind(5,username);
+
+		if(!order_stmt.exec()) {
+			LOG_ERROR("SalesService::checkout - failed to insert order");
+			sqlite3_exec(db.get_connection(),"ROLLBACK;",nullptr,nullptr,nullptr);
+			return std::nullopt;
+		}
 	}
-	sqlite3_finalize(stmt);
 
 	LOG_DEBUG("SalesService::checkout - order created: " + order_id);
 
-	const char* sale_sql = "INSERT INTO VENTAS (ID_VENTA, ORDEN_ID, PRODUCTO_ID, CANTIDAD_VENTA, PRECIO_UNITARIO) VALUES (?, ?, ?, ?, ?);";
-	const char* update_stock_sql = "UPDATE PRODUCTOS SET CANTIDAD = CANTIDAD - ? WHERE ID_PRODUCTO = ?;";
+	{
+		SqliteStatement sale_stmt(db.get_connection(),"INSERT INTO VENTAS (ID_VENTA, ORDEN_ID, PRODUCTO_ID, CANTIDAD_VENTA, PRECIO_UNITARIO) VALUES (?, ?, ?, ?, ?);");
+		SqliteStatement update_stock_stmt(db.get_connection(),"UPDATE PRODUCTOS SET CANTIDAD = CANTIDAD - ? WHERE ID_PRODUCTO = ?;");
 
-	for(const auto& item : session->cart) {
-		std::string sale_id = "VTA-" + Utils::generate_uuid().substr(0,8);
+		for(const auto& item : session->cart) {
+			std::string sale_id = "VTA-" + Utils::generate_uuid().substr(0,8);
 
-		if(sqlite3_prepare_v2(db.get_connection(),sale_sql,-1,&stmt,nullptr) != SQLITE_OK) {
-			continue;
-		}
+			if(sale_stmt.ok()) {
+				sale_stmt.reset();
+				sale_stmt.bind(1,sale_id);
+				sale_stmt.bind(2,order_id);
+				sale_stmt.bind(3,item.product_id);
+				sale_stmt.bind(4,item.quantity);
+				sale_stmt.bind(5,item.unit_price);
+				sale_stmt.exec();
+			}
 
-		sqlite3_bind_text(stmt,1,sale_id.c_str(),-1,SQLITE_STATIC);
-		sqlite3_bind_text(stmt,2,order_id.c_str(),-1,SQLITE_STATIC);
-		sqlite3_bind_text(stmt,3,item.product_id.c_str(),-1,SQLITE_STATIC);
-		sqlite3_bind_int(stmt,4,item.quantity);
-		sqlite3_bind_double(stmt,5,item.unit_price);
-
-		sqlite3_step(stmt);
-		sqlite3_finalize(stmt);
-
-		if(sqlite3_prepare_v2(db.get_connection(),update_stock_sql,-1,&stmt,nullptr) == SQLITE_OK) {
-			sqlite3_bind_int(stmt,1,item.quantity);
-			sqlite3_bind_text(stmt,2,item.product_id.c_str(),-1,SQLITE_STATIC);
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
+			if(update_stock_stmt.ok()) {
+				update_stock_stmt.reset();
+				update_stock_stmt.bind(1,item.quantity);
+				update_stock_stmt.bind(2,item.product_id);
+				update_stock_stmt.exec();
+			}
 		}
 	}
 
 	std::string ticket_id = "TKT-" + Utils::generate_uuid().substr(0,8);
 	std::string ticket_fecha = Utils::get_timestamp();
 
-	const char* ticket_sql = "INSERT INTO TICKETS (ID_TICKET,ORDEN_ID,VENDEDOR_NOMBRE,FECHA_CREACION,ESTADO) VALUES (?,?,?,?,'PENDIENTE');";
-	if(sqlite3_prepare_v2(db.get_connection(),ticket_sql,-1,&stmt,nullptr) == SQLITE_OK) {
-		sqlite3_bind_text(stmt,1,ticket_id.c_str(),-1,SQLITE_STATIC);
-		sqlite3_bind_text(stmt,2,order_id.c_str(),-1,SQLITE_STATIC);
-		sqlite3_bind_text(stmt,3,session->username.c_str(),-1,SQLITE_STATIC);
-		sqlite3_bind_text(stmt,4,ticket_fecha.c_str(),-1,SQLITE_STATIC);
-		sqlite3_step(stmt);
-		sqlite3_finalize(stmt);
+	{
+		SqliteStatement ticket_stmt(db.get_connection(),"INSERT INTO TICKETS (ID_TICKET,ORDEN_ID,VENDEDOR_NOMBRE,FECHA_CREACION,ESTADO) VALUES (?,?,?,?,'PENDIENTE');");
+		if(ticket_stmt.ok()) {
+			ticket_stmt.bind(1,ticket_id);
+			ticket_stmt.bind(2,order_id);
+			ticket_stmt.bind(3,session->username);
+			ticket_stmt.bind(4,ticket_fecha);
+			ticket_stmt.exec();
 
-		const char* item_sql = "INSERT INTO TICKET_ITEMS (TICKET_ID,PRODUCTO_ID,NOMBRE_PRODUCTO,CANTIDAD) VALUES (?,?,?,?);";
-		for(const auto& item : session->cart) {
-			if(sqlite3_prepare_v2(db.get_connection(),item_sql,-1,&stmt,nullptr) != SQLITE_OK) {
-				continue;
+			SqliteStatement item_stmt(db.get_connection(),"INSERT INTO TICKET_ITEMS (TICKET_ID,PRODUCTO_ID,NOMBRE_PRODUCTO,CANTIDAD) VALUES (?,?,?,?);");
+			if(item_stmt.ok()) {
+				for(const auto& item : session->cart) {
+					item_stmt.reset();
+					item_stmt.bind(1,ticket_id);
+					item_stmt.bind(2,item.product_id);
+					item_stmt.bind(3,item.name);
+					item_stmt.bind(4,item.quantity);
+					item_stmt.exec();
+				}
 			}
-
-			sqlite3_bind_text(stmt,1,ticket_id.c_str(),-1,SQLITE_STATIC);
-			sqlite3_bind_text(stmt,2,item.product_id.c_str(),-1,SQLITE_STATIC);
-			sqlite3_bind_text(stmt,3,item.name.c_str(),-1,SQLITE_STATIC);
-			sqlite3_bind_int(stmt,4,item.quantity);
-			sqlite3_step(stmt);
-			sqlite3_finalize(stmt);
 		}
 	}
+
+	sqlite3_exec(db.get_connection(),"COMMIT;",nullptr,nullptr,nullptr);
 
 	session->cart.clear();
 
@@ -129,24 +133,21 @@ SalesReport SalesService::get_sales_report() {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = "SELECT ID_VENTA, FECHA_VENTA, VENTA_TOTAL, METODO_PAGO, VENDEDOR FROM ORDENES ORDER BY FECHA_VENTA DESC;";
-	sqlite3_stmt* stmt;
-
-	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) == SQLITE_OK) {
-		while(sqlite3_step(stmt) == SQLITE_ROW) {
+	SqliteStatement stmt(db.get_connection(),"SELECT ID_VENTA, FECHA_VENTA, VENTA_TOTAL, METODO_PAGO, VENDEDOR FROM ORDENES ORDER BY FECHA_VENTA DESC;");
+	if(stmt.ok()) {
+		while(stmt.step() == SQLITE_ROW) {
 			Order order;
-			order.sale_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,0));
-			order.sale_time = reinterpret_cast<const char*>(sqlite3_column_text(stmt,1));
-			order.total_sale = sqlite3_column_double(stmt,2);
-			const char* method = reinterpret_cast<const char*>(sqlite3_column_text(stmt,3));
-			order.vendor = reinterpret_cast<const char*>(sqlite3_column_text(stmt,4));
-			order.payment_method = method ? method[0] : 'C';
+			order.sale_id = stmt.column_text(0);
+			order.sale_time = stmt.column_text(1);
+			order.total_sale = stmt.column_double(2);
+			std::string method = stmt.column_text(3);
+			order.vendor = stmt.column_text(4);
+			order.payment_method = method.empty() ? 'C' : method[0];
 
 			report.transactions[order.payment_method].revenue += order.total_sale;
 			report.transactions[order.payment_method].transaction_count++;
 			report.orders.push_back(order);
 		}
-		sqlite3_finalize(stmt);
 	}
 
 	report.total_revenue = 0.0;
@@ -166,22 +167,19 @@ std::vector<Sale> SalesService::get_sales_by_order_id(const std::string& order_i
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = "SELECT ID_VENTA, ORDEN_ID, PRODUCTO_ID, CANTIDAD_VENTA, PRECIO_UNITARIO FROM VENTAS WHERE ORDEN_ID = ?;";
-	sqlite3_stmt* stmt;
+	SqliteStatement stmt(db.get_connection(),"SELECT ID_VENTA, ORDEN_ID, PRODUCTO_ID, CANTIDAD_VENTA, PRECIO_UNITARIO FROM VENTAS WHERE ORDEN_ID = ?;");
+	if(stmt.ok()) {
+		stmt.bind(1,order_id);
 
-	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) == SQLITE_OK) {
-		sqlite3_bind_text(stmt,1,order_id.c_str(),-1,SQLITE_STATIC);
-
-		while(sqlite3_step(stmt) == SQLITE_ROW) {
+		while(stmt.step() == SQLITE_ROW) {
 			Sale sale;
-			sale.sale_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,0));
-			sale.order_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,1));
-			sale.product_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,2));
-			sale.sale_quantity = sqlite3_column_int(stmt,3);
-			sale.unit_price = sqlite3_column_double(stmt,4);
+			sale.sale_id = stmt.column_text(0);
+			sale.order_id = stmt.column_text(1);
+			sale.product_id = stmt.column_text(2);
+			sale.sale_quantity = stmt.column_int(3);
+			sale.unit_price = stmt.column_double(4);
 			sales.push_back(sale);
 		}
-		sqlite3_finalize(stmt);
 	}
 
 	return sales;
@@ -193,26 +191,23 @@ SalesReport SalesService::get_sales_report_by_vendor(const std::string& vendor) 
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = "SELECT ID_VENTA,FECHA_VENTA,VENTA_TOTAL,METODO_PAGO,VENDEDOR FROM ORDENES WHERE VENDEDOR = ? ORDER BY FECHA_VENTA DESC;";
-	sqlite3_stmt* stmt;
+	SqliteStatement stmt(db.get_connection(),"SELECT ID_VENTA,FECHA_VENTA,VENTA_TOTAL,METODO_PAGO,VENDEDOR FROM ORDENES WHERE VENDEDOR = ? ORDER BY FECHA_VENTA DESC;");
+	if(stmt.ok()) {
+		stmt.bind(1,vendor);
 
-	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) == SQLITE_OK) {
-		sqlite3_bind_text(stmt,1,vendor.c_str(),-1,SQLITE_STATIC);
-
-		while(sqlite3_step(stmt) == SQLITE_ROW) {
+		while(stmt.step() == SQLITE_ROW) {
 			Order order;
-			order.sale_id = reinterpret_cast<const char*>(sqlite3_column_text(stmt,0));
-			order.sale_time = reinterpret_cast<const char*>(sqlite3_column_text(stmt,1));
-			order.total_sale = sqlite3_column_double(stmt,2);
-			const char* method = reinterpret_cast<const char*>(sqlite3_column_text(stmt,3));
-			order.vendor = reinterpret_cast<const char*>(sqlite3_column_text(stmt,4));
-			order.payment_method = method ? method[0] : 'C';
+			order.sale_id = stmt.column_text(0);
+			order.sale_time = stmt.column_text(1);
+			order.total_sale = stmt.column_double(2);
+			std::string method = stmt.column_text(3);
+			order.vendor = stmt.column_text(4);
+			order.payment_method = method.empty() ? 'C' : method[0];
 
 			report.transactions[order.payment_method].revenue += order.total_sale;
 			report.transactions[order.payment_method].transaction_count++;
 			report.orders.push_back(order);
 		}
-		sqlite3_finalize(stmt);
 	}
 
 	report.total_revenue = 0.0;
@@ -232,17 +227,14 @@ std::vector<std::string> SalesService::get_all_vendors_with_sales() {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	const char* sql = "SELECT DISTINCT VENDEDOR FROM ORDENES ORDER BY VENDEDOR;";
-	sqlite3_stmt* stmt;
-
-	if(sqlite3_prepare_v2(db.get_connection(),sql,-1,&stmt,nullptr) == SQLITE_OK) {
-		while(sqlite3_step(stmt) == SQLITE_ROW) {
-			const char* vendor= reinterpret_cast<const char*>(sqlite3_column_text(stmt,0));
-			if(vendor) {
+	SqliteStatement stmt(db.get_connection(),"SELECT DISTINCT VENDEDOR FROM ORDENES ORDER BY VENDEDOR;");
+	if(stmt.ok()) {
+		while(stmt.step() == SQLITE_ROW) {
+			std::string vendor = stmt.column_text(0);
+			if(!vendor.empty()) {
 				vendors.push_back(vendor);
 			}
 		}
-		sqlite3_finalize(stmt);
 	}
 	return vendors;
 }
