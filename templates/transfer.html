@@ -1,21 +1,201 @@
+<style>
+	.product-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 15px;
+		margin-bottom: 30px;
+	}
+	.product-card {
+		background: linear-gradient(135deg, #222 0%, #111 100%);
+		border: 2px solid #333;
+		border-radius: 8px;
+		padding: 8px;
+		text-align: center;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+	.product-card:hover, .product-card.selected {
+		border-color: var(--primary-red);
+		box-shadow: 0 0 10px rgba(212,20,20,0.4);
+		transform: scale(1.02);
+	}
+	.product-card.out-of-stock {
+		opacity: 0.4;
+		pointer-events: none;
+	}
+	.product-img {
+		width: 65px;
+		height: 65px;
+		background: linear-gradient(135deg, #444 0%, #222 100%);
+		border-radius: 6px;
+		margin: 0 auto 3px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.5rem;
+		color: #666;
+		object-fit: cover;
+	}
+	.product-name {
+		font-weight: bold;
+		color: white;
+		font-size: 0.7rem;
+		margin-bottom: 1px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		line-height: 1.2;
+	}
+	.product-stock {
+		color: #888;
+		font-size: 0.6rem;
+		line-height: 1.2;
+	}
+	.qty-controls {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		margin: 8px 0;
+	}
+	.qty-btn {
+		width: 40px;
+		height: 40px;
+		font-size: 1.3rem;
+		background: var(--primary-red);
+		border: none;
+		border-radius: 6px;
+		color: white;
+		cursor: pointer;
+	}
+	.qty-display {
+		font-size: 1.5rem;
+		font-weight: bold;
+		color: white;
+		min-width: 40px;
+		text-align: center;
+	}
+	.selected-product {
+		background: rgba(212,20,20,0.2);
+		border: 2px solid var(--primary-red);
+		border-radius: 8px;
+		padding: 10px;
+		margin-bottom: 20px;
+		text-align: center;
+	}
+	.selected-product h3 {
+		font-size: 1rem;
+		margin: 0 0 5px 0;
+	}
+	@media (min-width: 600px) {
+		.product-grid { grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 12px; }
+		.product-card { padding: 10px; }
+		.product-img { width: 70px; height: 70px; }
+		.product-name { font-size: 0.85rem; }
+	}
+</style>
 <div class='container'>
 <div class='header'><h1>Transferencias de Inventario</h1>
 <a href='/home' class='btn btn-primary'>Volver al Menu</a></div>
 {{MESSAGE_BLOCK}}
 <h3>Nueva Transferencia</h3>
-<form method="POST" action="/transfers/create" class="inline-form">
-	<select name="product_id" required style="flex: 2;">
-	{{PRODUCT_OPTIONS}}
-	</select>
-	<select name="origin_id" required style="flex: 2;">
+<form method="POST" action="/transfers/create" id="transfer_form" onsubmit="return validate_form()">
+<div class="inline-form">
+	<select name="origin_id" id="origin_select" onchange="on_origin_change()" required style="flex: 2;">
 	{{ORIGIN_OPTIONS}}
 	</select>
-	<select name="destination_id" required style="flex: 2;">
+</div>
+<div class='product-grid'>
+{{PRODUCT_CARDS}}
+</div>
+<input type="hidden" name="product_id" id="selected_product_id">
+<div class="selected-product" id="selected_area" style="display:none;">
+	<h3 id="selected_name">-</h3>
+	<select name="destination_id" required style="margin-bottom: 8px;">
 	{{DESTINATION_OPTIONS}}
 	</select>
-	<input type="number" name="quantity" placeholder="Cantidad" min="1" required style="flex: 1;">
+	<div class="qty-controls">
+		<button type="button" class="qty-btn" onclick='change_qty(-1)'>-</button>
+		<span class="qty-display" id="qty_display">1</span>
+		<button type="button" class="qty-btn" onclick='change_qty(1)'>+</button>
+	</div>
+	<input type="hidden" name="quantity" id="selected_qty" value="1">
 	<button type="submit" class="btn btn-success">Transferir</button>
+</div>
 </form>
+<script>
+const stockByOrigin = {{ORIGIN_STOCKS_JSON}};
+const names = {{NAMES_JSON}};
+let selected_id = null;
+let qty = 1;
+
+function current_origin() {
+	return document.getElementById('origin_select').value;
+}
+
+function render_stocks() {
+	const stocks = stockByOrigin[current_origin()] || {};
+	document.querySelectorAll('.product-card').forEach(function(card) {
+		const id = card.dataset.id;
+		const stock = stocks[id] || 0;
+		document.getElementById('stock-' + id).textContent = 'Stock: ' + stock;
+		if(stock <= 0) {
+			card.classList.add('out-of-stock');
+		} else {
+			card.classList.remove('out-of-stock');
+		}
+	});
+	if(selected_id && (stocks[selected_id] || 0) <= 0) {
+		clear_selection();
+	}
+}
+
+function clear_selection() {
+	selected_id = null;
+	document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+	document.getElementById('selected_area').style.display = 'none';
+}
+
+function on_origin_change() {
+	clear_selection();
+	render_stocks();
+}
+
+function select_product(id) {
+	const stocks = stockByOrigin[current_origin()] || {};
+	if((stocks[id] || 0) <= 0) return;
+	document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+	selected_id = id;
+	qty = 1;
+	document.getElementById('card-' + id).classList.add('selected');
+	document.getElementById('selected_area').style.display = 'block';
+	document.getElementById('selected_name').textContent = names[id] + ' (Stock: ' + stocks[id] + ')';
+	document.getElementById('selected_product_id').value = id;
+	update_qty();
+}
+
+function change_qty(delta) {
+	if(!selected_id) return;
+	const stocks = stockByOrigin[current_origin()] || {};
+	qty = Math.max(1, Math.min(stocks[selected_id] || 1, qty + delta));
+	update_qty();
+}
+
+function update_qty() {
+	document.getElementById('qty_display').textContent = qty;
+	document.getElementById('selected_qty').value = qty;
+}
+
+function validate_form() {
+	if(!selected_id) {
+		alert('Selecciona un producto del origen');
+		return false;
+	}
+	return true;
+}
+
+render_stocks();
+</script>
 <h3 style='margin-top: 30px;'>Historial de Transferencias</h3>
 <table><tr><th>Producto</th><th>Origen</th><th>Destino</th><th>Cantidad</th><th>Usuario</th><th>Fecha</th></tr>
 {{TRANSFER_ROWS}}

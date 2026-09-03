@@ -93,6 +93,7 @@ embed_resource(vendor_row_html templates/partials/vendor_row.html)
 embed_resource(isle_row_html templates/partials/isle_row.html)
 embed_resource(isla_option_html templates/partials/isla_option.html)
 embed_resource(transfer_row_html templates/partials/transfer_row.html)
+embed_resource(transfer_product_card_html templates/partials/transfer_product_card.html)
 embed_resource(monitoring_isle_card_html templates/partials/monitoring_isle_card.html)
 embed_resource(monitoring_inventory_row_html templates/partials/monitoring_inventory_row.html)
 

@@ -55,6 +55,7 @@
 #include <isla_option_html.h>
 #include <transfer_html.h>
 #include <transfer_row_html.h>
+#include <transfer_product_card_html.h>
 #include <monitoring_html.h>
 #include <monitoring_isle_card_html.h>
 #include <monitoring_inventory_row_html.h>
@@ -314,7 +315,9 @@ namespace HtmlTemplates {
 	}
 
 	std::string inventory_view_page(Session* session) {
-		auto products = InventoryService::get_instance().get_all_products();
+		auto products = (session->role == "vendor")
+			? InventoryService::get_instance().get_products_with_isla_stock(session->isla_id)
+			: InventoryService::get_instance().get_all_products();
 
 		std::string manage_link = session->role == "admin" ? load(manage_inventory_link_html,manage_inventory_link_html_len) : "";
 
@@ -510,14 +513,49 @@ namespace HtmlTemplates {
 
 		std::string message_block = message.empty() ? "" : render(alert_success_html,alert_success_html_len,{{"MESSAGE",message}});
 
-		std::string product_options;
+		std::string product_cards;
+		std::string names_json = "{";
+		bool first_name = true;
 		for(const auto& p : products) {
-			product_options += render(isla_option_html,isla_option_html_len,{
+			std::string image_cell = !p.imagen.empty()
+				? render(product_image_html,product_image_html_len,{{"SRC",p.imagen},{"ALT",p.name}})
+				: load(product_image_placeholder_html,product_image_placeholder_html_len);
+
+			product_cards += render(transfer_product_card_html,transfer_product_card_html_len,{
 				{"ID",p.id},
-				{"NOMBRE",p.name},
-				{"SELECTED",""},
+				{"IMAGE",image_cell},
+				{"NAME",p.name},
 			});
+
+			if(!first_name) names_json += ",";
+			names_json += "\"" + p.id + "\":\"" + p.name + "\"";
+			first_name = false;
 		}
+		names_json += "}";
+
+		std::string origin_stocks_json = "{\"" + TransferService::ALMACEN_ID + "\":{";
+		{
+			bool first = true;
+			for(const auto& p : products) {
+				if(!first) origin_stocks_json += ",";
+				origin_stocks_json += "\"" + p.id + "\":" + std::to_string(p.quantity);
+				first = false;
+			}
+		}
+		origin_stocks_json += "}";
+
+		for(const auto& isla : isles) {
+			auto isle_products = InventoryService::get_instance().get_products_with_isla_stock(isla.id);
+			origin_stocks_json += ",\"" + isla.id + "\":{";
+			bool first = true;
+			for(const auto& p : isle_products) {
+				if(!first) origin_stocks_json += ",";
+				origin_stocks_json += "\"" + p.id + "\":" + std::to_string(p.quantity);
+				first = false;
+			}
+			origin_stocks_json += "}";
+		}
+		origin_stocks_json += "}";
 
 		std::string origin_options = build_isla_options(isles,"",false,true);
 		std::string destination_options = build_isla_options(isles,"",false,true);
@@ -546,7 +584,9 @@ namespace HtmlTemplates {
 
 		return wrap_html("Transferencias",render(transfer_html,transfer_html_len,{
 			{"MESSAGE_BLOCK",message_block},
-			{"PRODUCT_OPTIONS",product_options},
+			{"PRODUCT_CARDS",product_cards},
+			{"ORIGIN_STOCKS_JSON",origin_stocks_json},
+			{"NAMES_JSON",names_json},
 			{"ORIGIN_OPTIONS",origin_options},
 			{"DESTINATION_OPTIONS",destination_options},
 			{"TRANSFER_ROWS",rows},
