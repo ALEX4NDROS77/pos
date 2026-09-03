@@ -140,3 +140,45 @@ bool InventoryService::update_quantity(const std::string& id,int quantity) {
 	stmt.bind(2,id);
 	return stmt.exec();
 }
+
+int InventoryService::get_isla_stock(const std::string& isla_id,const std::string& product_id) {
+	auto& db = DatabaseService::get_instance();
+	std::lock_guard<std::mutex> lock(db.get_mutex());
+
+	SqliteStatement stmt(db.get_connection(),"SELECT CANTIDAD FROM INVENTARIO_ISLA WHERE ISLA_ID = ? AND PRODUCTO_ID = ?;");
+	if(!stmt.ok()) return 0;
+
+	stmt.bind(1,isla_id);
+	stmt.bind(2,product_id);
+
+	if(stmt.step() == SQLITE_ROW) {
+		return stmt.column_int(0);
+	}
+	return 0;
+}
+
+std::vector<Product> InventoryService::get_products_with_isla_stock(const std::string& isla_id) {
+	std::vector<Product> products;
+	auto& db = DatabaseService::get_instance();
+	std::lock_guard<std::mutex> lock(db.get_mutex());
+
+	SqliteStatement stmt(db.get_connection(),
+		"SELECT P.ID_PRODUCTO, P.NOMBRE, P.PRECIO_VENTA, IFNULL(I.CANTIDAD,0), IFNULL(P.IMAGEN,'') "
+		"FROM PRODUCTOS P LEFT JOIN INVENTARIO_ISLA I ON I.PRODUCTO_ID = P.ID_PRODUCTO AND I.ISLA_ID = ? "
+		"ORDER BY P.NOMBRE;");
+	if(!stmt.ok()) return products;
+
+	stmt.bind(1,isla_id);
+
+	while(stmt.step() == SQLITE_ROW) {
+		Product p;
+		p.id = stmt.column_text(0);
+		p.name = stmt.column_text(1);
+		p.sale_price = stmt.column_double(2);
+		p.quantity = stmt.column_int(3);
+		p.imagen = stmt.column_text(4);
+		products.push_back(p);
+	}
+
+	return products;
+}

@@ -21,9 +21,16 @@ namespace HtmlTemplates {
 	std::string inventory_view_page(Session* session);
 	std::string inventory_manage_page(Session* session,const std::string& message = "");
 
-	std::string sales_report_page(Session* session,const SalesReport& report,const std::string& vendor = "");
+	std::string sales_report_page(Session* session,const SalesReport& report,const std::string& vendor = "",const std::string& product_id = "");
 
 	std::string vendor_manage_page(Session* session,const std::string& message = "");
+
+	std::string isle_manage_page(Session* session,const std::string& message = "");
+
+	std::string transfer_page(Session* session,const std::string& message = "");
+
+	std::string monitoring_page(Session* session);
+	std::string monitoring_body(Session* session);
 }
 
 #endif

@@ -1,0 +1,22 @@
+<div class='container'>
+<div class='header'><h1>Transferencias de Inventario</h1>
+<a href='/home' class='btn btn-primary'>Volver al Menu</a></div>
+{{MESSAGE_BLOCK}}
+<h3>Nueva Transferencia</h3>
+<form method="POST" action="/transfers/create" class="inline-form">
+	<select name="product_id" required style="flex: 2;">
+	{{PRODUCT_OPTIONS}}
+	</select>
+	<select name="origin_id" required style="flex: 2;">
+	{{ORIGIN_OPTIONS}}
+	</select>
+	<select name="destination_id" required style="flex: 2;">
+	{{DESTINATION_OPTIONS}}
+	</select>
+	<input type="number" name="quantity" placeholder="Cantidad" min="1" required style="flex: 1;">
+	<button type="submit" class="btn btn-success">Transferir</button>
+</form>
+<h3 style='margin-top: 30px;'>Historial de Transferencias</h3>
+<table><tr><th>Producto</th><th>Origen</th><th>Destino</th><th>Cantidad</th><th>Usuario</th><th>Fecha</th></tr>
+{{TRANSFER_ROWS}}
+</table></div>

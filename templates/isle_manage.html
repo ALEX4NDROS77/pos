@@ -1,0 +1,13 @@
+<div class='container'>
+<div class='header'><h1>Gestionar Islas</h1>
+<a href='/home' class='btn btn-primary'>Volver al Menu</a></div>
+{{MESSAGE_BLOCK}}
+<h3>Agregar Isla</h3>
+<form method="POST" action="/isles/add" class="inline-form">
+	<input type="text" name="nombre" placeholder="Nombre de la isla" required style="flex: 2;">
+	<button type="submit" class="btn btn-success">Agregar</button>
+</form>
+<h3 style='margin-top: 30px;'>Islas</h3>
+<table><tr><th>ID</th><th>Nombre</th><th>Acciones</th></tr>
+{{ISLE_ROWS}}
+</table></div>

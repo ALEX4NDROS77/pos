@@ -10,6 +10,7 @@ void VendorController::register_routes(httplib::Server& server) {
 	server.Post("/vendors/update",update_vendor);
 	server.Get(R"(/vendors/delete/(.+))",delete_vendor);
 	server.Get(R"(/vendors/toggle/(.+))",toggle_vendor);
+	server.Post("/vendors/isle",assign_isle);
 }
 
 void VendorController::manage_vendors(const httplib::Request& req,httplib::Response& res) {
@@ -91,6 +92,26 @@ void VendorController::toggle_vendor(const httplib::Request& req,httplib::Respon
 	} else {
 		LOG_WARNING("VendorController::toggle_vendor - Vendor toggle failed: id='" + id + "'");
 		message = "Error al cambiar estado.";
+	}
+
+	res.set_content(HtmlTemplates::vendor_manage_page(session,message),"text/html");
+}
+
+void VendorController::assign_isle(const httplib::Request& req,httplib::Response& res) {
+	auto* session = SessionService::get_instance().require_role(req,res,"admin");
+	if(!session) return;
+
+	std::string id = req.get_param_value("id");
+	std::string isla_id = req.get_param_value("isla_id");
+
+	LOG_INFO("VendorController::assign_isle - Vendor isle assign: id='" + id + "', isla_id='" + isla_id + "'");
+
+	std::string message;
+	if(VendorService::get_instance().set_vendor_isle(id,isla_id)) {
+		message = "Isla asignada!";
+	} else {
+		LOG_WARNING("VendorController::assign_isle - Vendor isle assign failed: id='" + id + "'");
+		message = "Error al asignar isla.";
 	}
 
 	res.set_content(HtmlTemplates::vendor_manage_page(session,message),"text/html");

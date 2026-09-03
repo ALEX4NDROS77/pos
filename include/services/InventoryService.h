@@ -16,6 +16,9 @@ class InventoryService {
 		bool delete_product(const std::string& id);
 		bool update_quantity(const std::string& id,int cantidad);
 
+		int get_isla_stock(const std::string& isla_id,const std::string& product_id);
+		std::vector<Product> get_products_with_isla_stock(const std::string& isla_id);
+
 	private:
 		InventoryService() = default;
 		InventoryService(const InventoryService&) = delete;

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include <models/Order.h>
+#include <models/Product.h>
 #include <models/Sale.h>
 #include <models/Session.h>
 
@@ -25,10 +26,11 @@ class SalesService {
 		static SalesService& get_instance();
 
 		std::optional<std::string> checkout(Session* session,char payment_method);
-		SalesReport get_sales_report();
-		SalesReport get_sales_report_by_vendor(const std::string& vendor);
+		SalesReport get_sales_report(const std::string& vendor = "",const std::string& product_id = "");
+		SalesReport get_isle_sales_summary(const std::string& isla_id);
 		std::vector<Sale> get_sales_by_order_id(const std::string& order_id);
 		std::vector<std::string> get_all_vendors_with_sales();
+		std::vector<Product> get_all_products_with_sales();
 
 	private:
 		SalesService() = default;

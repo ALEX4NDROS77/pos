@@ -58,6 +58,9 @@ embed_resource(inventory_view_html templates/inventory_view.html)
 embed_resource(inventory_manage_html templates/inventory_manage.html)
 embed_resource(sales_report_html templates/sales_report.html)
 embed_resource(vendor_manage_html templates/vendor_manage.html)
+embed_resource(isle_manage_html templates/isle_manage.html)
+embed_resource(transfer_html templates/transfer.html)
+embed_resource(monitoring_html templates/monitoring.html)
 
 embed_resource(alert_danger_html templates/partials/alert_danger.html)
 embed_resource(alert_success_html templates/partials/alert_success.html)
@@ -80,11 +83,18 @@ embed_resource(product_thumb_placeholder_html templates/partials/product_thumb_p
 embed_resource(inventory_manage_row_html templates/partials/inventory_manage_row.html)
 embed_resource(vendor_filter_html templates/partials/vendor_filter.html)
 embed_resource(vendor_filter_link_html templates/partials/vendor_filter_link.html)
+embed_resource(product_filter_html templates/partials/product_filter.html)
+embed_resource(product_filter_link_html templates/partials/product_filter_link.html)
 embed_resource(sales_order_row_html templates/partials/sales_order_row.html)
 embed_resource(sales_report_body_html templates/partials/sales_report_body.html)
 embed_resource(vendor_active_html templates/partials/vendor_active.html)
 embed_resource(vendor_inactive_html templates/partials/vendor_inactive.html)
 embed_resource(vendor_row_html templates/partials/vendor_row.html)
+embed_resource(isle_row_html templates/partials/isle_row.html)
+embed_resource(isla_option_html templates/partials/isla_option.html)
+embed_resource(transfer_row_html templates/partials/transfer_row.html)
+embed_resource(monitoring_isle_card_html templates/partials/monitoring_isle_card.html)
+embed_resource(monitoring_inventory_row_html templates/partials/monitoring_inventory_row.html)
 
 add_custom_target(generate_templates DEPENDS ${EMBEDDED_HEADERS})
 
@@ -98,12 +108,17 @@ set(SOURCES
 	src/services/SessionService.cpp
 	src/services/VendorService.cpp
 	src/services/TicketService.cpp
+	src/services/IsleService.cpp
+	src/services/TransferService.cpp
 	src/controllers/AuthController.cpp
 	src/controllers/CartController.cpp
 	src/controllers/InventoryController.cpp
 	src/controllers/ReportController.cpp
 	src/controllers/VendorController.cpp
 	src/controllers/TicketController.cpp
+	src/controllers/IsleController.cpp
+	src/controllers/TransferController.cpp
+	src/controllers/MonitoringController.cpp
 	src/views/HtmlTemplates.cpp
 	src/utils/Utils.cpp
 	src/utils/Logger.cpp

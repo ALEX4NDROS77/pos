@@ -6,11 +6,11 @@ SessionService& SessionService::get_instance() {
 	return instance;
 }
 
-std::string SessionService::create_session(const std::string& username,const std::string& role) {
+std::string SessionService::create_session(const std::string& username,const std::string& role,const std::string& isla_id) {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
 	std::string session_id = Utils::generate_session_id();
-	m_sessions[session_id] = {username,role,{}};
+	m_sessions[session_id] = {username,role,isla_id,{}};
 
 	return session_id;
 }

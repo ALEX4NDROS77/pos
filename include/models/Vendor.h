@@ -8,6 +8,7 @@ struct Vendor {
 	std::string nombre;
 	std::string password;
 	bool activo;
+	std::string isla_id;
 };
 
 #endif

@@ -10,7 +10,7 @@ class SessionService {
 	public:
 		static SessionService& get_instance();
 
-		std::string create_session(const std::string& username,const std::string& role);
+		std::string create_session(const std::string& username,const std::string& role,const std::string& isla_id = "");
 		void destroy_session(const std::string& session_id);
 		Session* get_session(const std::string& session_id);
 		Session* get_session_from_request(const httplib::Request& req);

@@ -8,6 +8,7 @@
 struct Session {
 	std::string username;
 	std::string role;	// "admin" or "vendor"
+	std::string isla_id;	// assigned isle for vendors; empty for admin/unassigned
 	std::vector<CartItem> cart;
 };
 

@@ -23,6 +23,8 @@ class DatabaseService {
 
 		bool create_tables();
 		bool insert_sample_data();
+		void add_column_if_missing(const std::string& table,const std::string& column,const std::string& decl);
+		void migrate_schema();
 
 		sqlite3* m_db = nullptr;
 		std::mutex m_mutex;

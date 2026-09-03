@@ -48,7 +48,7 @@ void AuthController::vendor_login_post(const httplib::Request& req,httplib::Resp
 		return;
 	}
 
-	std::string session_id = SessionService::get_instance().create_session(vendor->nombre,"vendor");
+	std::string session_id = SessionService::get_instance().create_session(vendor->nombre,"vendor",vendor->isla_id);
 	LOG_INFO("AuthController::vendor_login_post - Login success: vendor='" + vendor->nombre + "'");
 	res.set_header("Set-Cookie","session_id=" + session_id + "; Path=/; HttpOnly");
 	res.set_redirect("/home");

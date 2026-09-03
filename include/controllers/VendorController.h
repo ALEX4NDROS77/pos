@@ -13,6 +13,7 @@ class VendorController {
 		static void update_vendor(const httplib::Request& req,httplib::Response& res);
 		static void delete_vendor(const httplib::Request& req,httplib::Response& res);
 		static void toggle_vendor(const httplib::Request& req,httplib::Response& res);
+		static void assign_isle(const httplib::Request& req,httplib::Response& res);
 };
 
 #endif

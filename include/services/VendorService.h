@@ -16,6 +16,7 @@ class VendorService {
 		bool update_vendor(const std::string& id,const std::string& nombre,const std::string& password,bool activo);
 		bool delete_vendor(const std::string& id);
 		bool set_vendor_active(const std::string& id,bool activo);
+		bool set_vendor_isle(const std::string& id,const std::string& isla_id);
 
 	private:
 		VendorService() = default;

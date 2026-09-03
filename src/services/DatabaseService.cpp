@@ -27,6 +27,8 @@ bool DatabaseService::initialize(const std::string& db_path) {
 		return false;
 	}
 
+	migrate_schema();
+
 	if(!insert_sample_data()) {
 		return false;
 	}
@@ -102,6 +104,31 @@ bool DatabaseService::create_tables() {
 			CANTIDAD INTEGER NOT NULL,
 			FOREIGN KEY (TICKET_ID) REFERENCES TICKETS(ID_TICKET)
 		);
+
+		CREATE TABLE IF NOT EXISTS ISLAS (
+			ID_ISLA VARCHAR(36) PRIMARY KEY,
+			NOMBRE VARCHAR(100) NOT NULL
+		);
+
+		CREATE TABLE IF NOT EXISTS INVENTARIO_ISLA (
+			ISLA_ID VARCHAR(36) NOT NULL,
+			PRODUCTO_ID VARCHAR(36) NOT NULL,
+			CANTIDAD INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (ISLA_ID, PRODUCTO_ID),
+			FOREIGN KEY (ISLA_ID) REFERENCES ISLAS(ID_ISLA),
+			FOREIGN KEY (PRODUCTO_ID) REFERENCES PRODUCTOS(ID_PRODUCTO)
+		);
+
+		CREATE TABLE IF NOT EXISTS TRANSFERENCIAS (
+			ID_TRANSFERENCIA VARCHAR(36) PRIMARY KEY,
+			PRODUCTO_ID VARCHAR(36) NOT NULL,
+			ORIGEN VARCHAR(36) NOT NULL,
+			DESTINO VARCHAR(36) NOT NULL,
+			CANTIDAD INTEGER NOT NULL,
+			USUARIO VARCHAR(100) NOT NULL,
+			FECHA DATETIME NOT NULL,
+			FOREIGN KEY (PRODUCTO_ID) REFERENCES PRODUCTOS(ID_PRODUCTO)
+		);
 	)";
 
 	char* err_msg = nullptr;
@@ -114,6 +141,25 @@ bool DatabaseService::create_tables() {
 	}
 
 	return true;
+}
+
+void DatabaseService::add_column_if_missing(const std::string& table,const std::string& column,const std::string& decl) {
+	std::string sql = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + decl + ";";
+	char* err_msg = nullptr;
+	int rc = sqlite3_exec(m_db,sql.c_str(),nullptr,nullptr,&err_msg);
+
+	if(rc != SQLITE_OK) {
+		std::string err = err_msg ? err_msg : "";
+		if(err.find("duplicate column name") == std::string::npos) {
+			std::cerr << "SQL error adding column " << table << "." << column << ": " << err << std::endl;
+		}
+		sqlite3_free(err_msg);
+	}
+}
+
+void DatabaseService::migrate_schema() {
+	add_column_if_missing("VENDEDORES","ISLA_ID","VARCHAR(36) NOT NULL DEFAULT ''");
+	add_column_if_missing("ORDENES","ISLA_ID","VARCHAR(36) NOT NULL DEFAULT ''");
 }
 
 bool DatabaseService::insert_sample_data() {
@@ -143,9 +189,13 @@ bool DatabaseService::insert_sample_data() {
 		('PROD-007','Queso',3,''),
 		('PROD-008','Mantequilla',2,'');
 
-		INSERT INTO VENDEDORES (ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO) VALUES
-		('VEND-001','vendedor1','1234',1),
-		('VEND-002','vendedor2','5678',1);
+		INSERT INTO ISLAS (ID_ISLA,NOMBRE) VALUES
+		('ISLA-001','Isla 1'),
+		('ISLA-002','Isla 2');
+
+		INSERT INTO VENDEDORES (ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO,ISLA_ID) VALUES
+		('VEND-001','vendedor1','1234',1,'ISLA-001'),
+		('VEND-002','vendedor2','5678',1,'ISLA-002');
 	)";
 
 	char* err_msg = nullptr;

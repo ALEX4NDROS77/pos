@@ -2,6 +2,14 @@
 <td>{{NOMBRE}}</td>
 <td>{{ESTADO}}</td>
 <td>
+<form method="POST" action="/vendors/isle" style="display:inline;">
+<input type="hidden" name="id" value="{{ID}}">
+<select name="isla_id" onchange="this.form.submit()">
+{{ISLA_OPTIONS}}
+</select>
+</form>
+</td>
+<td>
 <a href='/vendors/toggle/{{ID}}' class='btn btn-success'>{{TOGGLE_LABEL}}</a>
 <a href='/vendors/delete/{{ID}}' class='btn btn-danger' onclick='return confirm("¿Eliminar vendedor?")'>Eliminar</a>
 </td></tr>

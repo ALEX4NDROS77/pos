@@ -4,8 +4,11 @@
 #include <controllers/AuthController.h>
 #include <controllers/CartController.h>
 #include <controllers/InventoryController.h>
+#include <controllers/IsleController.h>
+#include <controllers/MonitoringController.h>
 #include <controllers/ReportController.h>
 #include <controllers/TicketController.h>
+#include <controllers/TransferController.h>
 #include <controllers/VendorController.h>
 #include <services/DatabaseService.h>
 #include <utils/AppConfig.h>
@@ -37,6 +40,9 @@ int main() {
 	ReportController::register_routes(server);
 	VendorController::register_routes(server);
 	TicketController::register_routes(server);
+	IsleController::register_routes(server);
+	TransferController::register_routes(server);
+	MonitoringController::register_routes(server);
 
 	LOG_INFO("==================================");
 	LOG_INFO("  Server running on:");

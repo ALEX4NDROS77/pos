@@ -13,7 +13,7 @@ std::optional<Vendor> VendorService::authenticate(const std::string& nombre,cons
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	SqliteStatement stmt(db.get_connection(),"SELECT ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO FROM VENDEDORES WHERE NOMBRE = ? AND PASSWORD = ? AND ACTIVO = 1;");
+	SqliteStatement stmt(db.get_connection(),"SELECT ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO,ISLA_ID FROM VENDEDORES WHERE NOMBRE = ? AND PASSWORD = ? AND ACTIVO = 1;");
 	if(!stmt.ok()) return std::nullopt;
 
 	stmt.bind(1,nombre);
@@ -26,6 +26,7 @@ std::optional<Vendor> VendorService::authenticate(const std::string& nombre,cons
 	v.nombre = stmt.column_text(1);
 	v.password = stmt.column_text(2);
 	v.activo = stmt.column_int(3) == 1;
+	v.isla_id = stmt.column_text(4);
 	return v;
 }
 
@@ -34,7 +35,7 @@ std::vector<Vendor> VendorService::get_all_vendors() {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	SqliteStatement stmt(db.get_connection(),"SELECT ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO FROM VENDEDORES ORDER BY NOMBRE;");
+	SqliteStatement stmt(db.get_connection(),"SELECT ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO,ISLA_ID FROM VENDEDORES ORDER BY NOMBRE;");
 	if(!stmt.ok()) return vendors;
 
 	while(stmt.step() == SQLITE_ROW) {
@@ -43,6 +44,7 @@ std::vector<Vendor> VendorService::get_all_vendors() {
 		v.nombre = stmt.column_text(1);
 		v.password = stmt.column_text(2);
 		v.activo = stmt.column_int(3) == 1;
+		v.isla_id = stmt.column_text(4);
 		vendors.push_back(v);
 	}
 
@@ -53,7 +55,7 @@ std::optional<Vendor> VendorService::get_vendor_by_id(const std::string& id) {
 	auto& db = DatabaseService::get_instance();
 	std::lock_guard<std::mutex> lock(db.get_mutex());
 
-	SqliteStatement stmt(db.get_connection(),"SELECT ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO FROM VENDEDORES WHERE ID_VENDEDOR = ?;");
+	SqliteStatement stmt(db.get_connection(),"SELECT ID_VENDEDOR,NOMBRE,PASSWORD,ACTIVO,ISLA_ID FROM VENDEDORES WHERE ID_VENDEDOR = ?;");
 	if(!stmt.ok()) return std::nullopt;
 
 	stmt.bind(1,id);
@@ -65,6 +67,7 @@ std::optional<Vendor> VendorService::get_vendor_by_id(const std::string& id) {
 	v.nombre = stmt.column_text(1);
 	v.password = stmt.column_text(2);
 	v.activo = stmt.column_int(3) == 1;
+	v.isla_id = stmt.column_text(4);
 	return v;
 }
 
@@ -118,6 +121,19 @@ bool VendorService::set_vendor_active(const std::string& id,bool activo) {
 	if(!stmt.ok()) return false;
 
 	stmt.bind(1,activo ? 1 : 0);
+	stmt.bind(2,id);
+
+	return stmt.exec();
+}
+
+bool VendorService::set_vendor_isle(const std::string& id,const std::string& isla_id) {
+	auto& db = DatabaseService::get_instance();
+	std::lock_guard<std::mutex> lock(db.get_mutex());
+
+	SqliteStatement stmt(db.get_connection(),"UPDATE VENDEDORES SET ISLA_ID = ? WHERE ID_VENDEDOR = ?;");
+	if(!stmt.ok()) return false;
+
+	stmt.bind(1,isla_id);
 	stmt.bind(2,id);
 
 	return stmt.exec();

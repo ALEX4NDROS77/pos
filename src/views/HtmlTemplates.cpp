@@ -4,6 +4,8 @@
 #include <services/InventoryService.h>
 #include <services/CartService.h>
 #include <services/SalesService.h>
+#include <services/IsleService.h>
+#include <services/TransferService.h>
 #include <utils/AppConfig.h>
 #include <utils/TemplateEngine.h>
 
@@ -41,11 +43,21 @@
 #include <inventory_manage_row_html.h>
 #include <vendor_filter_html.h>
 #include <vendor_filter_link_html.h>
+#include <product_filter_html.h>
+#include <product_filter_link_html.h>
 #include <sales_order_row_html.h>
 #include <sales_report_body_html.h>
 #include <vendor_active_html.h>
 #include <vendor_inactive_html.h>
 #include <vendor_row_html.h>
+#include <isle_manage_html.h>
+#include <isle_row_html.h>
+#include <isla_option_html.h>
+#include <transfer_html.h>
+#include <transfer_row_html.h>
+#include <monitoring_html.h>
+#include <monitoring_isle_card_html.h>
+#include <monitoring_inventory_row_html.h>
 
 namespace HtmlTemplates {
 	namespace {
@@ -55,6 +67,38 @@ namespace HtmlTemplates {
 
 		std::string load(const unsigned char* data,unsigned int len) {
 			return TemplateEngine::load(data,len);
+		}
+
+		std::string build_isla_options(const std::vector<Isla>& isles,const std::string& selected_id,bool include_none,bool include_almacen) {
+			std::string options;
+			if(include_none) {
+				options += render(isla_option_html,isla_option_html_len,{
+					{"ID",""},
+					{"NOMBRE","Sin isla"},
+					{"SELECTED",selected_id.empty() ? "selected" : ""},
+				});
+			}
+			if(include_almacen) {
+				options += render(isla_option_html,isla_option_html_len,{
+					{"ID",TransferService::ALMACEN_ID},
+					{"NOMBRE","Almacen Central"},
+					{"SELECTED",selected_id == TransferService::ALMACEN_ID ? "selected" : ""},
+				});
+			}
+			for(const auto& isla : isles) {
+				options += render(isla_option_html,isla_option_html_len,{
+					{"ID",isla.id},
+					{"NOMBRE",isla.nombre},
+					{"SELECTED",selected_id == isla.id ? "selected" : ""},
+				});
+			}
+			return options;
+		}
+
+		std::string stock_class_for(int quantity) {
+			if(quantity <= 0) return "stock-critical";
+			if(quantity <= 5) return "stock-warning";
+			return "stock-ok";
 		}
 	}
 
@@ -159,7 +203,9 @@ namespace HtmlTemplates {
 	}
 
 	std::string cart_page(Session* session, const std::string& message) {
-		auto products = InventoryService::get_instance().get_all_products();
+		auto products = (session->role == "vendor")
+			? InventoryService::get_instance().get_products_with_isla_stock(session->isla_id)
+			: InventoryService::get_instance().get_all_products();
 
 		std::string product_cards;
 		std::string stock_json = "{";
@@ -314,8 +360,9 @@ namespace HtmlTemplates {
 		}));
 	}
 
-	std::string sales_report_page(Session* session, const SalesReport& report, const std::string& vendor) {
+	std::string sales_report_page(Session* session, const SalesReport& report, const std::string& vendor, const std::string& product_id) {
 		auto all_vendors = SalesService::get_instance().get_all_vendors_with_sales();
+		auto all_products = SalesService::get_instance().get_all_products_with_sales();
 
 		std::string vendor_filter;
 		if(!all_vendors.empty()) {
@@ -323,16 +370,39 @@ namespace HtmlTemplates {
 			for(const auto& v : all_vendors) {
 				links += render(vendor_filter_link_html,vendor_filter_link_html_len,{
 					{"VENDOR",v},
+					{"PRODUCT",product_id},
 					{"CLASS",vendor == v ? "btn-primary" : "btn-danger"},
 				});
 			}
 			vendor_filter = render(vendor_filter_html,vendor_filter_html_len,{
 				{"ALL_CLASS",vendor.empty() ? "btn-primary" : "btn-danger"},
+				{"PRODUCT",product_id},
 				{"VENDOR_LINKS",links},
 			});
 		}
 
+		std::string product_filter;
+		std::string product_name;
+		if(!all_products.empty()) {
+			std::string links;
+			for(const auto& p : all_products) {
+				if(p.id == product_id) product_name = p.name;
+				links += render(product_filter_link_html,product_filter_link_html_len,{
+					{"VENDOR",vendor},
+					{"PRODUCT_ID",p.id},
+					{"PRODUCT_NAME",p.name},
+					{"CLASS",product_id == p.id ? "btn-primary" : "btn-danger"},
+				});
+			}
+			product_filter = render(product_filter_html,product_filter_html_len,{
+				{"ALL_CLASS",product_id.empty() ? "btn-primary" : "btn-danger"},
+				{"VENDOR",vendor},
+				{"PRODUCT_LINKS",links},
+			});
+		}
+
 		std::string vendor_suffix = vendor.empty() ? "" : " - " + vendor;
+		std::string product_suffix = product_name.empty() ? "" : " - " + product_name;
 
 		std::string report_body;
 		if(report.orders.empty()) {
@@ -381,13 +451,16 @@ namespace HtmlTemplates {
 
 		return wrap_html("Reporte de Ventas",render(sales_report_html,sales_report_html_len,{
 			{"VENDOR_SUFFIX",vendor_suffix},
+			{"PRODUCT_SUFFIX",product_suffix},
 			{"VENDOR_FILTER",vendor_filter},
+			{"PRODUCT_FILTER",product_filter},
 			{"REPORT_BODY",report_body},
 		}));
 	}
 
 	std::string vendor_manage_page(Session* session,const std::string& message) {
 		auto vendors = VendorService::get_instance().get_all_vendors();
+		auto isles = IsleService::get_instance().get_all_isles();
 
 		std::string message_block = message.empty() ? "" : render(alert_success_html,alert_success_html_len,{{"MESSAGE",message}});
 
@@ -402,12 +475,134 @@ namespace HtmlTemplates {
 				{"NOMBRE",v.nombre},
 				{"ESTADO",estado},
 				{"TOGGLE_LABEL",v.activo ? "Desactivar" : "Activar"},
+				{"ISLA_OPTIONS",build_isla_options(isles,v.isla_id,true,false)},
 			});
 		}
 
 		return wrap_html("Gestionar Vendedores",render(vendor_manage_html,vendor_manage_html_len,{
 			{"MESSAGE_BLOCK",message_block},
 			{"VENDOR_ROWS",rows},
+		}));
+	}
+
+	std::string isle_manage_page(Session* session,const std::string& message) {
+		auto isles = IsleService::get_instance().get_all_isles();
+
+		std::string message_block = message.empty() ? "" : render(alert_success_html,alert_success_html_len,{{"MESSAGE",message}});
+
+		std::string rows;
+		for(const auto& isla : isles) {
+			rows += render(isle_row_html,isle_row_html_len,{
+				{"ID",isla.id},
+				{"NOMBRE",isla.nombre},
+			});
+		}
+
+		return wrap_html("Gestionar Islas",render(isle_manage_html,isle_manage_html_len,{
+			{"MESSAGE_BLOCK",message_block},
+			{"ISLE_ROWS",rows},
+		}));
+	}
+
+	std::string transfer_page(Session* session,const std::string& message) {
+		auto products = InventoryService::get_instance().get_all_products();
+		auto isles = IsleService::get_instance().get_all_isles();
+
+		std::string message_block = message.empty() ? "" : render(alert_success_html,alert_success_html_len,{{"MESSAGE",message}});
+
+		std::string product_options;
+		for(const auto& p : products) {
+			product_options += render(isla_option_html,isla_option_html_len,{
+				{"ID",p.id},
+				{"NOMBRE",p.name},
+				{"SELECTED",""},
+			});
+		}
+
+		std::string origin_options = build_isla_options(isles,"",false,true);
+		std::string destination_options = build_isla_options(isles,"",false,true);
+
+		std::map<std::string,std::string> location_names;
+		location_names[TransferService::ALMACEN_ID] = "Almacen Central";
+		for(const auto& isla : isles) {
+			location_names[isla.id] = isla.nombre;
+		}
+
+		auto history = TransferService::get_instance().get_transfer_history();
+		std::string rows;
+		for(const auto& t : history) {
+			auto origin_it = location_names.find(t.origin_id);
+			auto destination_it = location_names.find(t.destination_id);
+
+			rows += render(transfer_row_html,transfer_row_html_len,{
+				{"PRODUCT_NAME",t.product_name},
+				{"ORIGIN_NAME",origin_it != location_names.end() ? origin_it->second : t.origin_id},
+				{"DESTINATION_NAME",destination_it != location_names.end() ? destination_it->second : t.destination_id},
+				{"QUANTITY",std::to_string(t.quantity)},
+				{"USERNAME",t.username},
+				{"FECHA",t.fecha},
+			});
+		}
+
+		return wrap_html("Transferencias",render(transfer_html,transfer_html_len,{
+			{"MESSAGE_BLOCK",message_block},
+			{"PRODUCT_OPTIONS",product_options},
+			{"ORIGIN_OPTIONS",origin_options},
+			{"DESTINATION_OPTIONS",destination_options},
+			{"TRANSFER_ROWS",rows},
+		}));
+	}
+
+	std::string monitoring_body(Session* session) {
+		auto isles = IsleService::get_instance().get_all_isles();
+
+		std::string cards;
+		for(const auto& isla : isles) {
+			auto summary = SalesService::get_instance().get_isle_sales_summary(isla.id);
+			auto products = InventoryService::get_instance().get_products_with_isla_stock(isla.id);
+
+			auto get_count = [&](char key) -> int {
+				auto it = summary.transactions.find(key);
+				return it != summary.transactions.end() ? it->second.transaction_count : 0;
+			};
+			auto get_revenue = [&](char key) -> double {
+				auto it = summary.transactions.find(key);
+				return it != summary.transactions.end() ? it->second.revenue : 0.0;
+			};
+
+			std::string inventory_rows;
+			for(const auto& p : products) {
+				inventory_rows += render(monitoring_inventory_row_html,monitoring_inventory_row_html_len,{
+					{"NAME",p.name},
+					{"STOCK",std::to_string(p.quantity)},
+					{"STOCK_CLASS",stock_class_for(p.quantity)},
+				});
+			}
+
+			cards += render(monitoring_isle_card_html,monitoring_isle_card_html_len,{
+				{"ISLE_NAME",isla.nombre},
+				{"COUNT_E",std::to_string(get_count('E'))},
+				{"COUNT_T",std::to_string(get_count('T'))},
+				{"COUNT_C",std::to_string(get_count('C'))},
+				{"REVENUE_E",format_currency(get_revenue('E'))},
+				{"REVENUE_T",format_currency(get_revenue('T'))},
+				{"REVENUE_C",format_currency(get_revenue('C'))},
+				{"TOTAL_TRANSACTIONS",std::to_string(summary.total_transactions)},
+				{"REVENUE_TOTAL",format_currency(summary.total_revenue)},
+				{"INVENTORY_ROWS",inventory_rows},
+			});
+		}
+
+		if(cards.empty()) {
+			cards = render(alert_info_html,alert_info_html_len,{{"MESSAGE","No hay islas configuradas."}});
+		}
+
+		return cards;
+	}
+
+	std::string monitoring_page(Session* session) {
+		return wrap_html("Monitoreo",render(monitoring_html,monitoring_html_len,{
+			{"MONITORING_BODY",monitoring_body(session)},
 		}));
 	}
 }
